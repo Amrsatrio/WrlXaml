@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
-index 789912d..e01619a 100644
+index 789912d..804797b 100644
 --- a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
 +++ b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
 @@ -6,6 +6,7 @@ using System.Xaml;
@@ -10,7 +10,7 @@ index 789912d..e01619a 100644
  using Microsoft.Xaml.XamlDom;
  
  namespace Microsoft.Xaml.XamlCompiler;
-@@ -268,11 +269,49 @@ internal class ConnectionIdElement
+@@ -268,11 +269,48 @@ internal class ConnectionIdElement
  	{
  		get
  		{
@@ -34,7 +34,6 @@ index 789912d..e01619a 100644
 +{
 +    hrT = this->{{ObjectCodeName}}.As(&{{n_referenceT}});
 +}
-+
 +{{Type.WRLNameNonSmartVar()}} _ConnectionIdElement_Reference = {{Type.WRLGetSmartVar(n_referenceT)}};
 +// END ConnectionIdElement.ReferenceExpression - IsWeakRef branch
 +""";
@@ -63,7 +62,7 @@ index 789912d..e01619a 100644
  		}
  	}
  
-@@ -407,10 +446,80 @@ internal class ConnectionIdElement
+@@ -407,10 +445,82 @@ internal class ConnectionIdElement
  
  	public LanguageSpecificString GetMemberGetExpression(BindAssignmentBase bindAssignment)
  	{
@@ -84,25 +83,26 @@ index 789912d..e01619a 100644
 +$$"""
 +// BEGIN ConnectionIdElement.GetMemberGetExpression() - bindAssignment.IsAttachable branch
 +// Paste ReferenceExpression.WRLName()
-+{{ReferenceExpression.WRLName()}}
-+
 +{{bindAssignment.MemberType.WRLDeclareSmartVar(n_valueOutputSmart)}}
 +if (SUCCEEDED(hrT))
 +{
-+    ::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> memberDeclaringStatics;
-+    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
-+		::Microsoft::WRL::Wrappers::HStringReference({{bindAssignment.MemberDeclaringType.ToRuntimeClassNameConstant()}}).Get(),
-+		&memberDeclaringStatics);
-+	if (SUCCEEDED(hrT))
-+	{
-+{{bindAssignment.MemberDeclaringType.WRLDeclareQIIfNeeded(Type.WRLNameInterface(), ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(1)}}
-+	    if (SUCCEEDED(hrT))
-+	    {
-+	        hrT = memberDeclaringStatics->Get{{bindAssignment.MemberName}}({{n_temp}}, {{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
-+	    }
++{{ReferenceExpression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        ::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> memberDeclaringStatics;
++        hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++            ::Microsoft::WRL::Wrappers::HStringReference({{bindAssignment.MemberDeclaringType.ToRuntimeClassNameConstant()}}).Get(),
++            &memberDeclaringStatics);
++        if (SUCCEEDED(hrT))
++        {
++{{Type.WRLDeclareQIIfNeeded(bindAssignment.MemberDeclaringType.WRLNameInterface(), ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(3)}}
++            if (SUCCEEDED(hrT))
++            {
++                hrT = memberDeclaringStatics->Get{{bindAssignment.MemberName}}({{n_temp}}, {{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
++            }
++        }
 +    }
 +}
-+
 +{{bindAssignment.MemberType.WRLNameNonSmartVar()}} _ConnectionIdElement_GetMemberGetExpression_Out = {{bindAssignment.MemberType.WRLGetSmartVar(n_valueOutputSmart)}};
 +// END ConnectionIdElement.GetMemberGetExpression() - bindAssignment.IsAttachable branch
 +""";
@@ -126,18 +126,19 @@ index 789912d..e01619a 100644
 +$$"""
 +// BEGIN ConnectionIdElement.GetMemberGetExpression() - !bindAssignment.IsAttachable branch
 +// Paste ReferenceExpression.WRLName()
-+{{ReferenceExpression.WRLName()}}
-+
 +{{bindAssignment.MemberType.WRLDeclareSmartVar(n_valueOutputSmart)}}
 +if (SUCCEEDED(hrT))
 +{
-+{{bindAssignment.MemberDeclaringType.WRLDeclareQIIfNeeded(memberDeclaringTypeName, ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(1)}}
++{{ReferenceExpression.WRLName().WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = {{n_temp}}->get_{{bindAssignment.MemberName}}({{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
++{{Type.WRLDeclareQIIfNeeded(memberDeclaringTypeName, ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = {{n_temp}}->get_{{bindAssignment.MemberName}}({{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
++        }
 +    }
 +}
-+
 +{{bindAssignment.MemberType.WRLNameNonSmartVar()}} _ConnectionIdElement_GetMemberGetExpression_Out = {{bindAssignment.MemberType.WRLGetSmartVar(n_valueOutputSmart)}};
 +// END ConnectionIdElement.GetMemberGetExpression() - !bindAssignment.IsAttachable branch
 +""";

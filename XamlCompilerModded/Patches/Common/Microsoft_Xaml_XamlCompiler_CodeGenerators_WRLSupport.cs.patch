@@ -1,15 +1,16 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
 new file mode 100644
-index 0000000..973a652
+index 0000000..d46872e
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,156 @@
 +using System;
 +using System.Collections.Generic;
 +using System.IO;
 +using System.Reflection;
 +using System.Reflection.Metadata;
 +using System.Reflection.PortableExecutable;
++using System.Text;
 +
 +namespace Microsoft.Xaml.XamlCompiler.CodeGenerators;
 +
@@ -116,7 +117,7 @@ index 0000000..973a652
 +    }
 +
 +    private static readonly string[] _indents =
-+    {
++    [
 +        "",
 +        "    ",
 +        "        ",
@@ -124,20 +125,38 @@ index 0000000..973a652
 +        "                ",
 +        "                    ",
 +        "                        ",
-+        "                            ",
-+    };
++        "                            "
++    ];
 +
 +    public static string WRL_Indent(this string str, int indentLevel)
 +    {
++        if (string.IsNullOrEmpty(str)) return str;
++
++        // 1. Get the indent string
 +        var indent = indentLevel < _indents.Length ? _indents[indentLevel] : new string(' ', indentLevel * 4);
-+        using var reader = new StringReader(str);
-+        using var writer = new StringWriter();
-+        string line;
-+        while ((line = reader.ReadLine()) != null)
++
++        // 2. Pre-allocate StringBuilder to avoid resizing
++        // Estimate: Length + (approx 1 line break every 40 chars * indent length)
++        var sb = new StringBuilder(str.Length + (str.Length / 40 * indent.Length));
++
++        // 3. Indent the very first line
++        sb.Append(indent);
++
++        // 4. Iterate and inject indent after every newline
++        for (int i = 0; i < str.Length; i++)
 +        {
-+            writer.Write(indent);
-+            writer.WriteLine(line);
++            char c = str[i];
++            sb.Append(c);
++
++            // If we hit a newline, and it's NOT the very last character of the string,
++            // inject the indentation for the next line.
++            if (c == '\n' && i < str.Length - 1)
++            {
++                sb.Append(indent);
++            }
 +        }
-+        return writer.ToString();
++
++        return sb.ToString();
 +    }
++
 +}

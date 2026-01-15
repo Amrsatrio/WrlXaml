@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 new file mode 100644
-index 0000000..5f3416c
+index 0000000..243d467
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
-@@ -0,0 +1,1573 @@
+@@ -0,0 +1,1626 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Collections.Generic" #>
 +<#@ import namespace="System.Linq" #>
@@ -612,9 +612,42 @@ index 0000000..5f3416c
 +
 +            if (sender)
 +            {
++                bool fPropertyEqual;
 +<#      foreach (var step in bindUniverse.BindPathSteps.Values.Where(step => step.IsIncludedInUpdate == true)) { #>
 +<#          foreach (var child in step.TrackingSteps.OfType<DependencyPropertyStep>()) { #>
-+                if (sender == cacheDPC_<#=child.CodeName#><#= step is RootStep ? ".get()" : "" #> && <#=child.OwnerType.CppWinRTLocalElseRef()#>::<#=child.PropertyName#>Property() == prop)
++
++                {
++<#              if (step is RootStep) { #>
++                    ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spRootDependencyObject;
++                    cacheDPC_<#=child.CodeName#>.As(&spRootDependencyObject);
++                    fPropertyEqual = __XAML_IsSameObject(sender, spRootDependencyObject.Get());
++<#              } else { #>
++                    fPropertyEqual = __XAML_IsSameObject(sender, cacheDPC_<#=child.CodeName#>.Get());
++<#              } #>
++                    if (!fPropertyEqual)
++                    {
++<#              if (DomHelper.IsLocalType(child.OwnerType)) { #>
++                        ::Microsoft::WRL::ComPtr<IDependencyProperty> dependencyProperty;
++                        if (SUCCEEDED(<#=child.OwnerType.WRLName()#>::get_<#=child.PropertyName#>Property(&dependencyProperty)))
++                        {
++                            fPropertyEqual = __XAML_IsSameObject(dependencyProperty.Get(), prop);
++                        }
++<#              } else { #>
++                        ::Microsoft::WRL::ComPtr<<#=child.OwnerType.WRLNameInterface()#>Statics> memberDeclaringStatics;
++                        if (SUCCEEDED(::ABI::Windows::Foundation::GetActivationFactory(
++                            ::Microsoft::WRL::Wrappers::HStringReference(<#=child.OwnerType.ToRuntimeClassNameConstant()#>).Get(),
++                            &memberDeclaringStatics)))
++                        {
++                            ::Microsoft::WRL::ComPtr<IDependencyProperty> dependencyProperty;
++                            if (SUCCEEDED(memberDeclaringStatics->get_<#=child.PropertyName#>Property(&dependencyProperty)))
++                            {
++                                fPropertyEqual = __XAML_IsSameObject(dependencyProperty.Get(), prop);
++                            }
++                        }
++<#              } #>
++                    }
++                }
++                if (fPropertyEqual)
 +                {
 +                    <#=step.ValueType.WRLDeclareSmartVar("objT")#>
 +                    sender->QueryInterface(IID_PPV_ARGS(&objT));
@@ -849,10 +882,8 @@ index 0000000..5f3416c
 +                hr = hrT;
 +                if (FAILED(hr)) return hr;
 +
-+                ::EventRegistrationToken tokenIgnored;
-+                hr = pUIElement->add_LostFocus(
-+                    Callback<::ABI::Windows::UI::Xaml::IRoutedEventHandler>([this](IInspectable* sender, <#=Projection(DUI.NamespaceWindowsUIXaml)#>::IRoutedEventArgs* prop)
-+                    {
++                auto spCallback = ::Microsoft::WRL::Callback<::ABI::Windows::UI::Xaml::IRoutedEventHandler>([this](IInspectable* sender, <#=Projection(DUI.NamespaceWindowsUIXaml)#>::IRoutedEventArgs* prop)
++                {
 +<#+     } else { #>
 +                ::Microsoft::WRL::ComPtr<ABI::Windows::UI::Xaml::IDependencyObject2> dependencyObject2;
 +                hr = _ConnectionIdElement_Reference->QueryInterface(IID_PPV_ARGS(&dependencyObject2));
@@ -874,28 +905,39 @@ index 0000000..5f3416c
 +                if (FAILED(hr)) return hr;
 +<#+         } #>
 +
-+                ::EventRegistrationToken tokenIgnored;
-+                hr = dependencyObject2->RegisterPropertyChangedCallback(dependencyProperty.Get(),
-+                    Callback<::ABI::Windows::UI::Xaml::IDependencyPropertyChangedCallback>([this](IDependencyObject* sender, IDependencyProperty* prop)
-+                    {
++                auto spCallback = ::Microsoft::WRL::Callback<::ABI::Windows::UI::Xaml::IDependencyPropertyChangedCallback>([this](IDependencyObject* sender, IDependencyProperty* prop)
++                {
 +<#+     } #>
-+                        HRESULT hr = S_OK;
++                    HRESULT hr = S_OK;
 +
-+                        if (IsInitialized())
-+                        {
-+                            // Update Two Way binding
++                    if (IsInitialized())
++                    {
++                        // Update Two Way binding
 +<#+     MethodStep bindBackStep = ba.BindBackStep as MethodStep; #>
 +<#+     if (bindBackStep != null) { #>
 +<#+         var param = bindBackStep.Parameters[0]; #>
-+                            <#=ba.MemberType.WRLName()#> <#=param.Name#> = <#=ba.ReverseAssignmentExpression#>;
-+<#+                         Output_NullCheckedAssignment(bindBackStep, null);#>
++                        <#=ba.MemberType.WRLName()#> <#=param.Name#> = <#=ba.ReverseAssignmentExpression#>;
++<#+                     Output_NullCheckedAssignment(bindBackStep, null);#>
 +<#+     } else { #>
-+<#+                         Output_NullCheckedAssignment(ba.PathStep, ba.ReverseAssignmentExpression);#>
++<#+                     Output_NullCheckedAssignment(ba.PathStep, ba.ReverseAssignmentExpression);#>
 +<#+     }#>
-+                        }
++                    }
 +
-+                        return hr;
-+                    }).Get(), &tokenIgnored);
++                    return hr;
++                });
++                if (spCallback.Get())
++                {
++                    ::EventRegistrationToken tokenIgnored;
++<#+     if (ba.NeedsLostFocusForTwoWay) { #>
++                    hr = pUIElement->add_LostFocus(spCallback.Get(), &tokenIgnored);
++<#+     } else { #>
++                    hr = dependencyObject2->RegisterPropertyChangedCallback(dependencyProperty.Get(), spCallback.Get(), &tokenIgnored.value);
++<#+     } #>
++                }
++                else
++                {
++                    hr = E_OUTOFMEMORY;
++                }
 +                if (FAILED(hr)) return hr;
 +<#+     Output_ApiInformationCall_Pop(ba.ApiInformation, Indent.None); #>
 +                // END Output_Connect_TwoWayBinding(<#=ba.CodeName#>)
@@ -903,7 +945,7 @@ index 0000000..5f3416c
 +
 +<#+ void  Output_NullCheckedAssignment(BindPathStep step, LanguageSpecificString value) #>
 +<#+ { #>
-+<#+     PushIndent(Indent.FourTabs);#>
++<#+     PushIndent(Indent.ThreeTabs);#>
 +            // BEGIN Output_NullCheckedAssignment(<#=step.CodeName#>, ...)
 +<#+     foreach (var parent in step.Parents.Where(parent => parent.NeedsCheckForNull)) { #>
 +            HRESULT hrT = hr;
@@ -1005,6 +1047,17 @@ index 0000000..5f3416c
 +<#+             }#>
 +<#+             foreach (var child in step.TrackingSteps.OfType<DependencyPropertyStep>()) { #>
 +            {
++<#+                 if (hasParameter) { #>
++                HRESULT hrT = hr;
++<#+                 PushIndent(Indent.FourTabs);#>
++<#=step.ValueType.WRLDeclareQIIfNeeded(Projection(DUI.NamespaceWindowsUIXaml) + "::IDependencyObject", parameter, "pDependencyObject")#>
++<#+                 PopIndent();#>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++<#+                 } else { #>
++                <#=Projection(DUI.NamespaceWindowsUIXaml)#>::IDependencyObject* pDependencyObject = nullptr;
++<#+                 } #>
++
 +<#+                 if (DomHelper.IsLocalType(child.OwnerType)) { #>
 +                ::Microsoft::WRL::ComPtr<IDependencyProperty> dependencyProperty;
 +                hr = <#=child.OwnerType.WRLName()#>::get_<#=child.PropertyName#>Property(&dependencyProperty);
@@ -1021,7 +1074,7 @@ index 0000000..5f3416c
 +                if (FAILED(hr)) return hr;
 +<#+                 } #>
 +
-+                hr = _bindingsTracking->UpdateDependencyPropertyChangedListener(<#=parameter#>, dependencyProperty.Get(), cacheDPC_<#=child.CodeName#>, tokenDPC_<#=child.CodeName#>);
++                hr = _bindingsTracking->UpdateDependencyPropertyChangedListener(pDependencyObject, dependencyProperty.Get(), cacheDPC_<#=child.CodeName#>, tokenDPC_<#=child.CodeName#>);
 +                <#=failedCheckStatement#>
 +            }
 +<#+             }#>
@@ -1577,4 +1630,3 @@ index 0000000..5f3416c
 +<#+         PopIndent(); #>
 +<#+     } #>
 +<#+ } #>
-\ No newline at end of file

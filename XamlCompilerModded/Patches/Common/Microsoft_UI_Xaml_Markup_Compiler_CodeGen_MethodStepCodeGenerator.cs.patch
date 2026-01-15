@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
-index 36bb7a6..f9e49fa 100644
+index 36bb7a6..9acedd7 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -9,7 +9,7 @@ index 36bb7a6..f9e49fa 100644
  
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
-@@ -9,10 +10,58 @@ internal class MethodStepCodeGenerator : BindPathStepCodeGenerator<MethodStep>
+@@ -9,10 +10,88 @@ internal class MethodStepCodeGenerator : BindPathStepCodeGenerator<MethodStep>
  	{
  		get
  		{
@@ -28,19 +28,47 @@ index 36bb7a6..f9e49fa 100644
 +				() => parentPathExpression.VBName() + "." + Instance.MethodName + "(" + paramList + ")",
 +				wrl: () =>
 +				{
++					string n_pMemberDeclaringInterface = WRL_InternalGetTempVarName(nameof(PathExpression), "pMemberDeclaringInterface");
++
++					string pasteStep1;
++					string pasteStep2;
++					if (Instance.Parent is StaticRootStep)
++					{
++						pasteStep1 = "/* Static method call */";
++						string n_spMemberDeclaringInterface = WRL_InternalGetTempVarName(nameof(PathExpression), "spMemberDeclaringInterface");
++						string memberDeclaringTypeName = Instance.OwnerType.WRLNameStaticInterfaceSpecific(Instance.MethodName);
++						pasteStep2 =
++$$"""
++::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> {{n_spMemberDeclaringInterface}};
++hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++	::Microsoft::WRL::Wrappers::HStringReference({{Instance.OwnerType.ToRuntimeClassNameConstant()}}).Get(),
++	&{{n_spMemberDeclaringInterface}});
++{{memberDeclaringTypeName}}* {{n_pMemberDeclaringInterface}} = {{n_spMemberDeclaringInterface}}.Get();
++""";
++					}
++					else
++					{
++						pasteStep1 = parentPathExpression.WRLName();
++						pasteStep2 = Instance.OwnerType.WRLDeclareQIIfNeeded(
++							Instance.OwnerType.WRLNameInterfaceSpecific(Instance.MethodName),
++							parentCodeGen.PathExpression.WRLOutVarName(), n_pMemberDeclaringInterface);
++					}
++
 +					if (Instance.ValueType.UnderlyingType.FullName == "System.Void")
 +					{
 +						return
 +$$"""
 +// BEGIN MethodStepCodeGenerator.PathExpression - Void branch
-+{{parentPathExpression.WRLName()}}
-+
 +if (SUCCEEDED(hrT))
 +{
-+{{Instance.OwnerType.WRLDeclareQIIfNeeded(Instance.OwnerType.WRLNameInterfaceSpecific(Instance.MethodName), parentCodeGen.PathExpression.WRLOutVarName(), "pMethodDeclaringInterface").WRL_Indent(1)}}
++{{pasteStep1.WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = pMethodDeclaringInterface->{{Instance.MethodName}}({{paramList}});
++{{pasteStep2.WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = {{n_pMemberDeclaringInterface}}->{{Instance.MethodName}}({{paramList}});
++        }
 +    }
 +}
 +// END MethodStepCodeGenerator.PathExpression - Void branch
@@ -52,15 +80,17 @@ index 36bb7a6..f9e49fa 100644
 +						return
 +$$"""
 +// BEGIN MethodStepCodeGenerator.PathExpression - Non-void branch
-+{{parentPathExpression.WRLName()}}
-+
 +{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
 +if (SUCCEEDED(hrT))
 +{
-+{{Instance.OwnerType.WRLDeclareQIIfNeeded(Instance.OwnerType.WRLNameInterfaceSpecific(Instance.MethodName), parentCodeGen.PathExpression.WRLOutVarName(), "pMethodDeclaringInterface").WRL_Indent(1)}}
++{{pasteStep1.WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = pMethodDeclaringInterface->{{Instance.MethodName}}({{paramList}}{{(paramList.Length > 0 ? ", " : string.Empty)}}{{Instance.ValueType.WRLOutParam(n_temp)}});
++{{pasteStep2.WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = {{n_pMemberDeclaringInterface}}->{{Instance.MethodName}}({{paramList}}{{(paramList.Length > 0 ? ", " : string.Empty)}}{{Instance.ValueType.WRLOutParam(n_temp)}});
++        }
 +    }
 +}
 +{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};

@@ -1,8 +1,15 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
-index 82d838c..097b3c5 100644
+index 82d838c..bc21653 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
-@@ -10,16 +10,34 @@ internal class MapIndexStepCodeGenerator : BindPathStepCodeGenerator<MapIndexSte
+@@ -1,5 +1,6 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+ using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -10,16 +11,134 @@ internal class MapIndexStepCodeGenerator : BindPathStepCodeGenerator<MapIndexSte
  		get
  		{
  			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
@@ -11,7 +18,41 @@ index 82d838c..097b3c5 100644
 +				() => $"safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, {base.Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->Lookup(\"{base.Instance.Key}\")",
 +				() => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, {0}>>().Lookup(\"{2}\")", base.Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), base.Instance.Key),
 +				() => $"{parentPathExpression.CSharpName()}[\"{base.Instance.Key}\"]",
-+				() => $"{parentPathExpression.VBName()}(\"{base.Instance.Key}\")");
++				() => $"{parentPathExpression.VBName()}(\"{base.Instance.Key}\")",
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++					string n_map = WRL_InternalGetTempVarName(nameof(PathExpression), "Map");
++					string n_strKeyHeader = WRL_InternalGetTempVarName(nameof(PathExpression), "StrKeyHeader");
++					string n_strKey = WRL_InternalGetTempVarName(nameof(PathExpression), "StrKey");
++					return
++$$"""
++// BEGIN MapIndexStepCodeGenerator.PathExpression
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{parentPathExpression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        ::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IMap<::HSTRING, {{Instance.ValueType.WRLNameTypeArg()}}>> {{n_map}};
++        hrT = {{parentPathExpression.WRLOutVarName()}}->QueryInterface(IID_PPV_ARGS(&{{n_map}}));
++        if (SUCCEEDED(hrT))
++        {
++            HSTRING_HEADER {{n_strKeyHeader}};
++            HSTRING {{n_strKey}};
++            hrT = WindowsCreateStringReference(L"{{Instance.Key}}", (UINT32)wcslen(L"{{Instance.Key}}"), &{{n_strKeyHeader}}, &{{n_strKey}});
++            if (SUCCEEDED(hrT))
++            {
++                hrT = {{n_map}}->Lookup({{n_strKey}}, {{Instance.ValueType.WRLOutParam(n_temp)}});
++            }
++        }
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END MapIndexStepCodeGenerator.PathExpression
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
  		}
  	}
  
@@ -24,7 +65,37 @@ index 82d838c..097b3c5 100644
 +				() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(obj)->Lookup(\"" + base.Instance.Key + "\")",
 +				() => "obj.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Lookup(L\"" + base.Instance.Key + "\")",
 +				() => string.Format("{0}[\"{1}\"]", "obj", base.Instance.Key),
-+				() => string.Format("{0}(\"{1}\")", "obj", base.Instance.Key));
++				() => string.Format("{0}(\"{1}\")", "obj", base.Instance.Key),
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++					string n_map = WRL_InternalGetTempVarName(nameof(PathExpression), "Map");
++					string n_strKeyHeader = WRL_InternalGetTempVarName(nameof(PathExpression), "StrKeyHeader");
++					string n_strKey = WRL_InternalGetTempVarName(nameof(PathExpression), "StrKey");
++					return
++$$"""
++// BEGIN MapIndexStepCodeGenerator.UpdateCallParam
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IMap<::HSTRING, {{Instance.ValueType.WRLNameTypeArg()}}>> {{n_map}};
++    hrT = obj->QueryInterface(IID_PPV_ARGS(&{{n_map}}));
++    if (SUCCEEDED(hrT))
++    {
++        HSTRING_HEADER {{n_strKeyHeader}};
++        HSTRING {{n_strKey}};
++        hrT = WindowsCreateStringReference(L"{{Instance.Key}}", (UINT32)wcslen(L"{{Instance.Key}}"), &{{n_strKeyHeader}}, &{{n_strKey}});
++        if (SUCCEEDED(hrT))
++        {
++            hrT = {{n_map}}->Lookup({{n_strKey}}, {{Instance.ValueType.WRLOutParam(n_temp)}});
++        }
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{UpdateCallParam.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END MapIndexStepCodeGenerator.UpdateCallParam
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
 +		}
 +	}
  
@@ -37,6 +108,42 @@ index 82d838c..097b3c5 100644
 +			() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(" + parentPathExpression.CppCXName() + ")->Insert(\"" + base.Instance.Key + "\", " + value.CppCXName() + ")",
 +			() => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Insert(L\"" + base.Instance.Key + "\", " + value.CppWinRTName() + ")",
 +			() => pathExpression.CSharpName() + " = " + value.CSharpName(),
-+			() => pathExpression.VBName() + " = " + value.VBName());
++			() => pathExpression.VBName() + " = " + value.VBName(),
++			wrl: () =>
++			{
++				string n_map = WRL_InternalGetTempVarName(nameof(PathSetExpression), "Map");
++				string n_strKeyHeader = WRL_InternalGetTempVarName(nameof(PathSetExpression), "StrKeyHeader");
++				string n_strKey = WRL_InternalGetTempVarName(nameof(PathSetExpression), "StrKey");
++				string n_replaced = WRL_InternalGetTempVarName(nameof(PathSetExpression), "Replaced");
++				return
++$$"""
++// BEGIN MapIndexStepCodeGenerator.PathSetExpression
++if (SUCCEEDED(hrT))
++{
++{{parentPathExpression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        ::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IMap<::HSTRING, {{Instance.ValueType.WRLNameTypeArg()}}>> {{n_map}};
++        hrT = {{parentPathExpression.WRLOutVarName()}}->QueryInterface(IID_PPV_ARGS(&{{n_map}}));
++        if (SUCCEEDED(hrT))
++        {
++            HSTRING_HEADER {{n_strKeyHeader}};
++            HSTRING {{n_strKey}};
++            hrT = WindowsCreateStringReference(L"{{Instance.Key}}", (UINT32)wcslen(L"{{Instance.Key}}"), &{{n_strKeyHeader}}, &{{n_strKey}});
++            if (SUCCEEDED(hrT))
++            {
++{{value.WRLName().WRL_Indent(4)}}
++                if (SUCCEEDED(hrT))
++                {
++                    boolean {{n_replaced}};
++                    hrT = {{n_map}}->Insert({{n_strKey}}, {{value.WRLOutVarName()}}, &{{n_replaced}});
++                }
++            }
++        }
++    }
++}
++// END MapIndexStepCodeGenerator.PathSetExpression
++""";
++			});
  	}
  }

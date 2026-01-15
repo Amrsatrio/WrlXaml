@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
 new file mode 100644
-index 0000000..9ec1ee8
+index 0000000..afa43bd
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
-@@ -0,0 +1,597 @@
+@@ -0,0 +1,594 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Linq" #>
 +<#@ import namespace="Microsoft.Xaml.DirectUI" #>
@@ -53,9 +53,6 @@ index 0000000..9ec1ee8
 +<#          IncludeTemplate<WRL_PageBindingTracking>(Model, bindUniverse); #>
 +<#          } #>
 +
-+#if 0
-+<#          IncludeTemplate<CppWinRT_PageBinding>(Model, bindUniverse); #>
-+#endif
 +<#          IncludeTemplate<WRL_PageBinding>(Model, bindUniverse); #>
 +<#      }#>
 +<# } #>

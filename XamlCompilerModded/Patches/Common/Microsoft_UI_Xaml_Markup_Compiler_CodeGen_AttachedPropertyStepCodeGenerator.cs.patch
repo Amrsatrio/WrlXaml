@@ -1,8 +1,16 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
-index f8367ba..1a34f41 100644
+index f8367ba..67cae3b 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
-@@ -9,16 +9,34 @@ internal class AttachedPropertyStepCodeGenerator : DependencyPropertyStepCodeGen
+@@ -1,5 +1,7 @@
++using System.Reflection;
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+ using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -9,16 +11,140 @@ internal class AttachedPropertyStepCodeGenerator : DependencyPropertyStepCodeGen
  	{
  		get
  		{
@@ -13,7 +21,41 @@ index f8367ba..1a34f41 100644
 +				() => $"{Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false)}::Get{Instance.PropertyName}({parentPathExpression.CppCXName()})",
 +				() => Instance.OwnerType.CppWinRTName() + "::Get" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ")",
 +				() => $"{Instance.OwnerType.CSharpName()}.Get{Instance.PropertyName}({parentPathExpression.CSharpName()})",
-+				() => $"{Instance.OwnerType.VBName()}.Get{Instance.PropertyName}({parentPathExpression.VBName()})");
++				() => $"{Instance.OwnerType.VBName()}.Get{Instance.PropertyName}({parentPathExpression.VBName()})",
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++					string n_spMemberDeclaringInterface = WRL_InternalGetTempVarName(nameof(PathExpression), "spMemberDeclaringInterface");
++					string n_pCasted = WRL_InternalGetTempVarName(nameof(PathExpression), "pCasted");
++					string memberDeclaringTypeName = Instance.OwnerType.WRLNameStaticInterfaceSpecific("Get" + Instance.PropertyName);
++					return
++$$"""
++// BEGIN AttachedPropertyStepCodeGenerator.PathExpression
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> {{n_spMemberDeclaringInterface}};
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{Instance.OwnerType.ToRuntimeClassNameConstant()}}).Get(),
++        &{{n_spMemberDeclaringInterface}});
++    if (SUCCEEDED(hrT))
++    {
++{{parentPathExpression.WRLName().WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++{{Instance.Parent.ValueType.WRLDeclareQIIfNeeded(WRL_GetFirstArgTypeName(false), parentPathExpression.WRLOutVarName(), n_pCasted).WRL_Indent(3)}}
++            if (SUCCEEDED(hrT))
++            {
++                hrT = {{n_spMemberDeclaringInterface}}->Get{{Instance.PropertyName}}({{n_pCasted}}, {{Instance.ValueType.WRLOutParam(n_temp)}});
++            }
++        }
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END AttachedPropertyStepCodeGenerator.PathExpression
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
  		}
  	}
  
@@ -26,7 +68,37 @@ index f8367ba..1a34f41 100644
 +				() => string.Format("{0}::Get{1}({2})", Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false), Instance.PropertyName, "obj"),
 +				() => Instance.OwnerType.CppWinRTName() + "::Get" + Instance.PropertyName + "(obj)",
 +				() => string.Format("{0}.Get{1}({2})", Instance.OwnerType.CSharpName(), Instance.PropertyName, "obj"),
-+				() => string.Format("{0}.Get{1}({2})", Instance.OwnerType.VBName(), Instance.PropertyName, "obj"));
++				() => string.Format("{0}.Get{1}({2})", Instance.OwnerType.VBName(), Instance.PropertyName, "obj"),
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Temp"); // return value smart ptr
++					string n_spMemberDeclaringInterface = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "spMemberDeclaringInterface");
++					string n_pCasted = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "pCasted");
++					string memberDeclaringTypeName = Instance.OwnerType.WRLNameStaticInterfaceSpecific("Get" + Instance.PropertyName);
++					return
++$$"""
++// BEGIN AttachedPropertyStepCodeGenerator.UpdateCallParam
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> {{n_spMemberDeclaringInterface}};
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{Instance.OwnerType.ToRuntimeClassNameConstant()}}).Get(),
++        &{{n_spMemberDeclaringInterface}});
++    if (SUCCEEDED(hrT))
++    {
++{{Instance.Parent.ValueType.WRLDeclareQIIfNeeded(WRL_GetFirstArgTypeName(false), "obj", n_pCasted).WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = {{n_spMemberDeclaringInterface}}->Get{{Instance.PropertyName}}({{n_pCasted}}, {{Instance.ValueType.WRLOutParam(n_temp)}});
++        }
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{UpdateCallParam.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END AttachedPropertyStepCodeGenerator.UpdateCallParam
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
 +		}
 +	}
  
@@ -39,6 +111,48 @@ index f8367ba..1a34f41 100644
 +			() => Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false) + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppCXName() + ", " + value.CppCXName() + ")",
 +			() => Instance.OwnerType.CppWinRTName() + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ", " + value.CppWinRTName() + ")",
 +			() => Instance.OwnerType.CSharpName() + ".Set" + Instance.PropertyName + "(" + parentPathExpression.CSharpName() + ", " + value.CSharpName() + ")",
-+			() => Instance.OwnerType.VBName() + ".Set" + Instance.PropertyName + "(" + parentPathExpression.VBName() + ", " + value.VBName() + ")");
++			() => Instance.OwnerType.VBName() + ".Set" + Instance.PropertyName + "(" + parentPathExpression.VBName() + ", " + value.VBName() + ")",
++			wrl: () =>
++			{
++				string n_spMemberDeclaringInterface = WRL_InternalGetTempVarName(nameof(PathSetExpression), "spMemberDeclaringInterface");
++				string n_pCasted = WRL_InternalGetTempVarName(nameof(PathSetExpression), "pCasted");
++				string memberDeclaringTypeName = Instance.OwnerType.WRLNameStaticInterfaceSpecific("Set" + Instance.PropertyName);
++				return
++$$"""
++// BEGIN AttachedPropertyStepCodeGenerator.PathSetExpression
++if (SUCCEEDED(hrT))
++{
++	::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> {{n_spMemberDeclaringInterface}};
++	hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++		::Microsoft::WRL::Wrappers::HStringReference({{Instance.OwnerType.ToRuntimeClassNameConstant()}}).Get(),
++		&{{n_spMemberDeclaringInterface}});
++	if (SUCCEEDED(hrT))
++	{
++{{parentPathExpression.WRLName().WRL_Indent(2)}}
++		if (SUCCEEDED(hrT))
++		{
++{{Instance.Parent.ValueType.WRLDeclareQIIfNeeded(WRL_GetFirstArgTypeName(true), parentPathExpression.WRLOutVarName(), n_pCasted).WRL_Indent(3)}}
++			if (SUCCEEDED(hrT))
++			{
++{{value.WRLName().WRL_Indent(4)}}
++				if (SUCCEEDED(hrT))
++				{
++					hrT = {{n_spMemberDeclaringInterface}}->Set{{Instance.PropertyName}}({{n_pCasted}}, {{value.WRLOutVarName()}});
++				}
++			}
++		}
++	}
++}
++// END AttachedPropertyStepCodeGenerator.PathSetExpression
++""";
++			});
++	}
++
++	private string WRL_GetFirstArgTypeName(bool forSetter)
++	{
++		string methodName = forSetter ? "Set" + Instance.PropertyName : "Get" + Instance.PropertyName;
++		MethodInfo method = Instance.OwnerType.UnderlyingType.GetMethod(methodName);
++		ParameterInfo[] parameters = method?.GetParameters() ?? throw new System.InvalidOperationException("Could not find method " + methodName + " on type " + Instance.OwnerType.UnderlyingType.FullName);
++		return Instance.OwnerType.SchemaContext.GetXamlType(parameters[0].ParameterType).WRLNameInterface();
  	}
  }

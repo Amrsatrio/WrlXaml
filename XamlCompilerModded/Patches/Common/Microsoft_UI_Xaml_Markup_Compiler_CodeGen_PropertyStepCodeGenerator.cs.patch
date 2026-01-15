@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
-index 222e967..a04d185 100644
+index 222e967..5e1c6e3 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
 @@ -1,4 +1,6 @@
@@ -74,7 +74,7 @@ index 222e967..a04d185 100644
  		}
  	}
  
-@@ -18,9 +72,88 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
+@@ -18,9 +72,90 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
  	{
  		get
  		{
@@ -146,23 +146,25 @@ index 222e967..a04d185 100644
 +			baseOutput.VBName,
 +			wrl: () =>
 +			{
-+				string n_output = Instance.Parent.CodeGen().PathExpression.WRLOutVarName();
-+return
++				ICodeGenOutput pathExpression = Instance.Parent.CodeGen().PathExpression;
++				return
 +$$"""
 +// BEGIN PropertyStepCodeGenerator.PathSetExpression()
-+// Paste value.WRLName()
-+{{value.WRLName()}}
-+
-+// Paste Instance.Parent.CodeGen().PathExpression.WRLName()
-+{{(Instance.Parent.NeedsCheckForNull ? "/* Already null-checked */" : Instance.Parent.CodeGen().PathExpression.WRLName())}}
-+
 +if (SUCCEEDED(hrT))
 +{
-+    hrT = {{n_output}}->put_{{Instance.PropertyName}}({{value.WRLOutVarName()}});
++    // Paste value.WRLName()
++{{value.WRLName().WRL_Indent(1)}}
++
++    // Paste Instance.Parent.CodeGen().PathExpression.WRLName()
++{{(Instance.Parent.NeedsCheckForNull ? "/* Already null-checked */" : pathExpression.WRLName()).WRL_Indent(1)}}
++
++    if (SUCCEEDED(hrT))
++    {
++        hrT = {{pathExpression.WRLOutVarName()}}->put_{{Instance.PropertyName}}({{value.WRLOutVarName()}});
++    }
 +}
 +// END PropertyStepCodeGenerator.PathSetExpression()
 +""";
-+			},
-+			wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathSetExpression), "Out"));
++			});
 +	}
  }
