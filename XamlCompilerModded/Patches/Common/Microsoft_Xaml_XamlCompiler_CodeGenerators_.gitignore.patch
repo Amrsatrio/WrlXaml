@@ -1,0 +1,8 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/.gitignore b/Microsoft/Xaml/XamlCompiler/CodeGenerators/.gitignore
+new file mode 100644
+index 0000000..58f4422
+--- /dev/null
++++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/.gitignore
+@@ -0,0 +1,2 @@
++﻿WRL_*.cs
++!WRL_CodeGenerator.cs

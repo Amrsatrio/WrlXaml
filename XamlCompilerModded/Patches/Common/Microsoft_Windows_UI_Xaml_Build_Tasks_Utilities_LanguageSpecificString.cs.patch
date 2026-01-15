@@ -1,0 +1,24 @@
+diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
+index de6daa1..e7bf5cf 100644
+--- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
++++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
+@@ -14,12 +14,18 @@ public class LanguageSpecificString : ICodeGenOutput
+ 
+ 	public CodeGenDelegate VBName { get; }
+ 
+-	public LanguageSpecificString(CodeGenDelegate cppCX, CodeGenDelegate cppWinRT, CodeGenDelegate cs, CodeGenDelegate vb)
++	public CodeGenDelegate WRLName { get; }
++
++	public CodeGenDelegate WRLOutVarName { get; }
++
++	public LanguageSpecificString(CodeGenDelegate cppCX, CodeGenDelegate cppWinRT, CodeGenDelegate cs, CodeGenDelegate vb, CodeGenDelegate wrl = null, CodeGenDelegate wrlOutVar = null)
+ 	{
+ 		CSharpName = cs;
+ 		CppCXName = cppCX;
+ 		CppWinRTName = cppWinRT;
+ 		VBName = vb;
++		WRLName = wrl ?? cppWinRT;
++		WRLOutVarName = wrlOutVar ?? (() => "<unnamed>");
+ 	}
+ 
+ 	public LanguageSpecificString(CodeGenDelegate all)

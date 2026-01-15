@@ -1,0 +1,202 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs b/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
+index 8c1c164..226e0ce 100644
+--- a/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
++++ b/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
+@@ -47,11 +47,14 @@ internal class MemberGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!typeInfo.IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "GetAttachableMember_" + Name + "<" + DeclaringType.FullName.CppCXName() + ", " + TargetType.FullName.CppCXName() + ">", () => "GetAttachableMember_" + Name + "<" + DeclaringType.FullName.CppWinRTName() + ", " + TargetType.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "GetAttachableMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName() + "_" + TargetType.StandardName.GetMemberFriendlyName());
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"GetAttachableMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}_{TargetType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"GetAttachableMember_{Name}<{DeclaringType.FullName.CppCXName()}, {TargetType.FullName.CppCXName()}>",
++					() => $"GetAttachableMember_{Name}<{DeclaringType.FullName.CppWinRTName()}, {TargetType.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"GetAttachableMember_{Name}<RuntimeClass_{DeclaringType.StandardName.GetMemberFriendlyName()}, {DeclaringType.FullInterfaceNameSpecific("Get" + Name, isStatic: true)}, {TargetType.FullDefaultInterfaceName}, {Type.FullDefaultInterfaceName + (!Type.IsValueType && Type.FullDefaultInterfaceName != "HSTRING" ? "*" : string.Empty)}>");
+ 		}
+ 	}
+ 
+@@ -71,11 +74,14 @@ internal class MemberGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!typeInfo.IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "GetValueTypeMember_" + Name + "<" + DeclaringType.FullName.CppCXName() + ", " + Type.FullName.CppCXName() + ">", () => "GetValueTypeMember_" + Name + "<" + DeclaringType.FullName.CppWinRTName() + ", " + Type.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "GetValueTypeMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName());
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"GetValueTypeMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"GetValueTypeMember_{Name}<{DeclaringType.FullName.CppCXName()}, {Type.FullName.CppCXName()}>",
++					() => $"GetValueTypeMember_{Name}<{DeclaringType.FullName.CppWinRTName()}, {Type.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"GetValueTypeMember_{Name}<{DeclaringType.FullInterfaceNameSpecific("get_" + Name, isStatic: false)}, {Type.FullName.WRLName()}>");
+ 		}
+ 	}
+ 
+@@ -91,7 +97,7 @@ internal class MemberGenInfo
+ 		}
+ 	}
+ 
+-	public LanguageSpecificString GetReferenceTypeMemberName
++	/*public LanguageSpecificString GetReferenceTypeMemberName
+ 	{
+ 		get
+ 		{
+@@ -101,6 +107,38 @@ internal class MemberGenInfo
+ 			}
+ 			return new LanguageSpecificString(() => "GetReferenceTypeMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName());
+ 		}
++	}*/
++
++	// @WRL_OVERRIDE
++	// @Backport: WinUI 3 / SDK 26100 -> pre-26100
++	public LanguageSpecificString GetReferenceTypeMemberName
++	{
++		get
++		{
++			// Uniquely qualify generated member/getter names in case multiple members have the same name,
++			// but require different functionality.  For C++/WinRT string types, the implementation needs
++			// to call ::winrt::Windows::Foundation::PropertyValue::CreateString when setting/getting
++			// properties of type strings, which differs from the normal reference type case
++			// of just casting with .As
++			string memberName;
++			if (memberInfo != null && memberInfo.IsString)
++			{
++				memberName = "StringMember";
++			}
++			else
++			{
++				memberName = "Member";
++			}
++
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"GetReferenceTypeMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"GetReferenceTypeMember_{Name}<{DeclaringType.FullName.CppCXName()}>",
++					() => $"GetReferenceType{memberName}_{Name}<{DeclaringType.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"GetReferenceType{memberName}_{Name}<{DeclaringType.FullInterfaceNameSpecific("get_" + Name, isStatic: false)}, {Type.FullDefaultInterfaceName}>");
++		}
+ 	}
+ 
+ 	public bool HasSetAttachableMember
+@@ -119,12 +157,15 @@ internal class MemberGenInfo
+ 	{
+ 		get
+ 		{
+-			string hatNeeded = (IsValueType ? string.Empty : "^");
+-			if (!typeInfo.IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "SetAttachableMember_" + Name + "<" + DeclaringType.FullName.CppCXName() + ", " + TargetType.FullName.CppCXName() + ", " + Type.FullName.CppCXName() + hatNeeded + ">", () => "SetAttachableMember_" + Name + "<" + DeclaringType.FullName.CppWinRTName() + ", " + TargetType.FullName.CppWinRTName() + ", " + Type.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "SetAttachableMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName() + "_" + TargetType.StandardName.GetMemberFriendlyName() + "_" + Type.StandardName.GetMemberFriendlyName());
++			string hatNeeded = IsValueType ? string.Empty : "^";
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"SetAttachableMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}_{TargetType.StandardName.GetMemberFriendlyName()}_{Type.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"SetAttachableMember_{Name}<{DeclaringType.FullName.CppCXName()}, {TargetType.FullName.CppCXName()}, {Type.FullName.CppCXName()}{hatNeeded}>",
++					() => $"SetAttachableMember_{Name}<{DeclaringType.FullName.CppWinRTName()}, {TargetType.FullName.CppWinRTName()}, {Type.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"SetAttachableMember_{Name}<RuntimeClass_{DeclaringType.StandardName.GetMemberFriendlyName()}, {DeclaringType.FullInterfaceNameSpecific("Set" + Name, isStatic: true)}, {TargetType.FullDefaultInterfaceName}, {Type.FullDefaultInterfaceName + (!Type.IsValueType && Type.FullDefaultInterfaceName != "HSTRING" ? "*" : string.Empty)}>");
+ 		}
+ 	}
+ 
+@@ -144,11 +185,14 @@ internal class MemberGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!typeInfo.IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "SetValueTypeMember_" + Name + "<" + DeclaringType.FullName.CppCXName() + ", " + Type.FullName.CppCXName() + ">", () => "SetValueTypeMember_" + Name + "<" + DeclaringType.FullName.CppWinRTName() + ", " + Type.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "SetValueTypeMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName());
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"SetValueTypeMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"SetValueTypeMember_{Name}<{DeclaringType.FullName.CppCXName()}, {Type.FullName.CppCXName()}>",
++					() => $"SetValueTypeMember_{Name}<{DeclaringType.FullName.CppWinRTName()}, {Type.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"SetValueTypeMember_{Name}<{DeclaringType.FullInterfaceNameSpecific("put_" + Name, isStatic: false)}, {Type.FullName.WRLName()}>");
+ 		}
+ 	}
+ 
+@@ -168,11 +212,14 @@ internal class MemberGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!typeInfo.IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "SetEnumMember_" + Name + "<" + DeclaringType.FullName.CppCXName() + ", " + Type.FullName.CppCXName() + ">", () => "SetEnumMember_" + Name + "<" + DeclaringType.FullName.CppWinRTName() + ", " + Type.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "SetEnumMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName() + "_" + Type.StandardName.GetMemberFriendlyName());
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"SetEnumMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}_{Type.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"SetEnumMember_{Name}<{DeclaringType.FullName.CppCXName()}, {Type.FullName.CppCXName()}>",
++					() => $"SetEnumMember_{Name}<{DeclaringType.FullName.CppWinRTName()}, {Type.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"SetEnumMember_{Name}<{DeclaringType.FullInterfaceNameSpecific("put_" + Name, isStatic: false)}, {Type.FullName.WRLName()}>");
+ 		}
+ 	}
+ 
+@@ -188,7 +235,7 @@ internal class MemberGenInfo
+ 		}
+ 	}
+ 
+-	public LanguageSpecificString SetReferenceTypeMemberName
++	/*public LanguageSpecificString SetReferenceTypeMemberName
+ 	{
+ 		get
+ 		{
+@@ -198,6 +245,38 @@ internal class MemberGenInfo
+ 			}
+ 			return new LanguageSpecificString(() => "SetReferenceTypeMember_" + Name.GetMemberFriendlyName() + "_" + DeclaringType.StandardName.GetMemberFriendlyName());
+ 		}
++	}*/
++
++	// @WRL_OVERRIDE
++	// @Backport: WinUI 3 / SDK 26100 -> pre-26100
++	public LanguageSpecificString SetReferenceTypeMemberName
++	{
++		get
++		{
++			// Uniquely qualify generated member/getter names in case multiple members have the same name,
++			// but require different functionality.  For C++/WinRT string types, the implementation needs
++			// to call ::winrt::Windows::Foundation::PropertyValue::CreateString when setting/getting
++			// properties of type strings, which differs from the normal reference type case
++			// of just casting with .As
++			string memberName;
++			if (memberInfo != null && memberInfo.IsString)
++			{
++				memberName = "StringMember";
++			}
++			else
++			{
++				memberName = "Member";
++			}
++
++			return typeInfo.IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"SetReferenceTypeMember_{Name.GetMemberFriendlyName()}_{DeclaringType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"SetReferenceTypeMember_{Name}<{DeclaringType.FullName.CppCXName()}, {Type.FullName.CppCXName()}>",
++					() => $"SetReferenceType{memberName}_{Name}<{DeclaringType.FullName.CppWinRTName()}, {Type.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"SetReferenceType{memberName}_{Name}<{DeclaringType.FullInterfaceNameSpecific("put_" + Name, isStatic: false)}, {Type.FullDefaultInterfaceName}>");
++		}
+ 	}
+ 
+ 	public MemberGenInfo(TypeGenInfo typeInfo, InternalXamlUserMemberInfo memberInfo)

@@ -1,0 +1,63 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
+index 1f1f9c5..6605b8a 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
+@@ -9,8 +9,14 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"(safe_cast<{base.Instance.ValueType.CppCXName()}>({parentPathExpression.CppCXName()}))", () => base.Instance.Parent.ValueType.CppWinRTCast(base.Instance.ValueType, parentPathExpression.CppWinRTName()), () => $"(({base.Instance.ValueType.CSharpName()}){parentPathExpression.CSharpName()})", () => string.Format("{2}({1}, {0})", base.Instance.ValueType.VBName(), parentPathExpression.VBName(), base.Instance.Parent.ValueType.GetVBCastName(base.Instance.ValueType.UnderlyingType)));
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			return new LanguageSpecificString(
++				() => $"(safe_cast<{Instance.ValueType.CppCXName()}>({parentPathExpression.CppCXName()}))",
++				() => Instance.Parent.ValueType.CppWinRTCast(Instance.ValueType, parentPathExpression.CppWinRTName()),
++				() => $"(({Instance.ValueType.CSharpName()}){parentPathExpression.CSharpName()})",
++				() => string.Format("{2}({1}, {0})", Instance.ValueType.VBName(), parentPathExpression.VBName(), Instance.Parent.ValueType.GetVBCastName(Instance.ValueType.UnderlyingType)),
++				wrl: () => Instance.Parent.ValueType.WRLCast(Instance.ValueType, parentPathExpression, PathExpression.WRLOutVarName()),
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ 
+@@ -18,11 +24,38 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
+ 	{
+ 		get
+ 		{
+-			if (base.Instance.ValueType.IsString())
++			if (Instance.ValueType.IsString())
+ 			{
+-				return new LanguageSpecificString(() => string.Format("{0}->ToString()", "obj"), () => string.Format("::winrt::to_hstring({0})", "obj"), () => string.Format("{0}.ToString()", "obj"), () => string.Format("{0}.ToString()", "obj"));
++				return new LanguageSpecificString(
++					() => string.Format("{0}->ToString()", "obj"),
++					() => string.Format("::winrt::to_hstring({0})", "obj"),
++					() => string.Format("{0}.ToString()", "obj"),
++					() => string.Format("{0}.ToString()", "obj"),
++					wrl: () =>
++					{
++						string n_tempBSTR = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "TempBSTR");
++						string n_tempHSTRH = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "TempHSTRH");
++						return
++$$"""
++// BEGIN CastStepCodeGenerator.UpdateCallParam - Instance.ValueType.IsString() branch
++BSTR {{n_tempBSTR}} = nullptr;
++{{Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities.XamlTypeExtensions.GenerateCleaner("BSTR", n_tempBSTR, "SysFreeString")}}
++HSTRING_HEADER {{n_tempHSTRH}};
++HSTRING {{UpdateCallParam.WRLOutVarName()}} = nullptr;
++if (SUCCEEDED(hrT))
++{
++    hrT = TroleStringer::GenericToString(obj, &{{n_tempBSTR}});
++}
++if (SUCCEEDED(hrT))
++{
++    hrT = WindowsCreateStringReference({{n_tempBSTR}}, (UINT32)wcslen({{n_tempBSTR}}), &{{n_tempHSTRH}}, &{{UpdateCallParam.WRLOutVarName()}});
++}
++// END CastStepCodeGenerator.UpdateCallParam - Instance.ValueType.IsString() branch
++""";
++					},
++					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
+ 			}
+-			return base.Instance.Parent.ValueType.GetInlineConversionExpression(base.Instance.ValueType, new LanguageSpecificString(() => "obj"));
++			return Instance.Parent.ValueType.GetInlineConversionExpression(Instance.ValueType, new LanguageSpecificString(() => "obj"));
+ 		}
+ 	}
+ }

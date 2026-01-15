@@ -1,0 +1,13 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs b/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
+index fd19e40..c38288c 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
+@@ -9,4 +9,8 @@ public interface ICodeGenOutput
+ 	CodeGenDelegate CSharpName { get; }
+ 
+ 	CodeGenDelegate VBName { get; }
++
++	CodeGenDelegate WRLName { get; }
++
++	CodeGenDelegate WRLOutVarName { get; }
+ }

@@ -1,0 +1,119 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBindingTracking.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBindingTracking.tt
+new file mode 100644
+index 0000000..5d7f2d8
+--- /dev/null
++++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBindingTracking.tt
+@@ -0,0 +1,113 @@
++﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
++<#@ import namespace="System.Collections.Generic" #>
++<#@ import namespace="System.Linq" #>
++<#@ import namespace="System.Xaml" #>
++<#@ import namespace="Microsoft.UI.Xaml.Markup.Compiler" #>
++<#
++    BindUniverse bu = Arguments[0] as BindUniverse;
++#>
++    class <#=bu.BindingsTrackingClassName#>
++        : public ::Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>
++            , <#=Globalize(ProjectInfo.RootNamespace)#>::XamlBindingTrackingBase
++        >
++    {
++    public:
++        // Event handlers
++<# IEnumerable<XamlType>  observableVectorTypes = bu.BindPathSteps.Values.Where(s => s.ValueType.ImplementsIObservableVector()).Select(s => s.ValueType.ItemType).Distinct().ToArray();#>
++<# IEnumerable<XamlType>  observableMapTypes = bu.BindPathSteps.Values.Where(s => s.ValueType.ImplementsIObservableMap()).Select(s => s.ValueType.ItemType).Distinct().ToArray();#>
++<# foreach (XamlType type in observableVectorTypes)#>
++<# { #>
++
++        HRESULT VectorChanged_<#=type.MemberFriendlyName()#>(
++            <#=Projection("Windows.Foundation.Collections.IObservableVector")#><<#=type.WRLNameTypeArg()#>>* sender,
++            <#=Projection("Windows.Foundation.Collections.IVectorChangedEventArgs")#>* e)
++        {
++            return VectorChanged(sender, e);
++        }
++<# } #>
++<# #>
++<# foreach (XamlType type in observableMapTypes)#>
++<# { #>
++
++        HRESULT MapChanged_<#=type.MemberFriendlyName()#>(
++            <#=Projection("Windows.Foundation.Collections.IObservableMap")#><HSTRING, <#=type.WRLNameTypeArg()#>>* sender,
++            <#=Projection("Windows.Foundation.Collections.IMapChangedEventArgs")#><HSTRING>* e)
++        {
++            return MapChanged(sender, e);
++        }
++<# } #>
++
++        // Listener update functions
++<# #>
++<# foreach (XamlType type in observableVectorTypes)#>
++<# { #>
++
++        HRESULT UpdateVectorChangedListener_<#=type.MemberFriendlyName()#>(
++            <#=Projection("Windows.Foundation.Collections.IObservableVector")#><<#=type.WRLNameTypeArg()#>>* obj,
++            ::Microsoft::WRL::ComPtr<<#=Projection("Windows.Foundation.Collections.IObservableVector")#><<#=type.WRLNameTypeArg()#>>>& cache,
++            ::EventRegistrationToken& token)
++        {
++            HRESULT hr = S_OK;
++
++            if (cache.Get() && cache.Get() != obj)
++            {
++                hr = cache->remove_VectorChanged(token);
++                cache.Reset();
++            }
++
++            if (SUCCEEDED(hr) && !cache.Get() && obj)
++            {
++                cache = obj;
++
++                auto spCallback = ::Microsoft::WRL::Callback<<#=Projection("Windows.Foundation.Collections.VectorChangedEventHandler")#><<#=type.WRLNameTypeArg()#>>>(
++                    this, &<#=GetBindingTrackingClassName(bu, Model.CodeInfo)#>::VectorChanged_<#=type.MemberFriendlyName()#>);
++                if (spCallback.Get())
++                {
++                    hr = obj->add_VectorChanged(spCallback.Get(), &token);
++                }
++                else
++                {
++                    hr = E_OUTOFMEMORY;
++                }
++            }
++
++            return hr;
++        }
++<# } #>
++<# #>
++<# foreach (XamlType type in observableMapTypes)#>
++<# { #>
++
++        HRESULT UpdateMapChangedListener_<#=type.MemberFriendlyName()#>(
++            <#=Projection("Windows.Foundation.Collections.IObservableMap")#><HSTRING, <#=type.WRLNameTypeArg()#>>* obj,
++            ::Microsoft::WRL::ComPtr<<#=Projection("Windows.Foundation.Collections.IObservableMap")#><HSTRING, <#=type.WRLNameTypeArg()#>>>& cache,
++            ::EventRegistrationToken& token)
++        {
++            HRESULT hr = S_OK;
++
++            if (cache.Get() && cache.Get() != obj)
++            {
++                hr = cache->remove_MapChanged(token);
++                cache.Reset();
++            }
++
++            if (SUCCEEDED(hr) && !cache.Get() && obj)
++            {
++                cache = obj;
++
++                auto spCallback = ::Microsoft::WRL::Callback<<#=Projection("Windows.Foundation.Collections.MapChangedEventHandler")#><HSTRING, <#=type.WRLNameTypeArg()#>>>(
++                    this, &<#=GetBindingTrackingClassName(bu, Model.CodeInfo)#>::MapChanged_<#=type.MemberFriendlyName()#>);
++                if (spCallback.Get())
++                {
++                    hr = obj->add_MapChanged(spCallback.Get(), &token);
++                }
++                else
++                {
++                    hr = E_OUTOFMEMORY;
++                }
++            }
++
++            return hr;
++        }
++<# } #>
++    };

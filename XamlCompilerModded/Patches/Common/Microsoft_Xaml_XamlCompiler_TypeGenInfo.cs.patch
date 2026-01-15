@@ -1,0 +1,130 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs b/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
+index c687e00..37cfe6a 100644
+--- a/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
++++ b/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
+@@ -186,6 +186,31 @@ internal class TypeGenInfo
+ 		}
+ 	}
+ 
++	// @MOD WRL support
++	public string FullDefaultInterfaceName
++	{
++		get
++		{
++			return this.UserTypeInfo != null ? this.UserTypeInfo.FullDefaultInterfaceName : this.TypeEntry.FullDefaultInterfaceName;
++		}
++	}
++
++	public string FullFactoryInterfaceForComposingName
++	{
++		get
++		{
++			return this.UserTypeInfo != null ? this.UserTypeInfo.FullFactoryInterfaceForComposingName : this.TypeEntry.FullFactoryInterfaceForComposingName;
++		}
++	}
++
++	public bool IsActivatable
++	{
++		get
++		{
++			return this.UserTypeInfo != null ? this.UserTypeInfo.IsActivatable : this.TypeEntry.IsActivatable;
++		}
++	}
++
+ 	public string ContentPropertyName
+ 	{
+ 		get
+@@ -242,11 +267,28 @@ internal class TypeGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "ActivateType<" + FullName.CppCXName() + ">", () => (!IsLocalType) ? ("ActivateType<" + FullName.CppWinRTName() + ">") : ("ActivateLocalType<" + FullName.CppWinRTName().ToLocalCppWinRTTypeName() + ">"), null, null);
+-			}
+-			return new LanguageSpecificString(() => "ActivateType_" + StandardName.GetMemberFriendlyName());
++			return IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"ActivateType_{StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"ActivateType<{FullName.CppCXName()}>",
++					() => IsLocalType ? $"ActivateLocalType<{FullName.CppWinRTName().ToLocalCppWinRTTypeName()}>" : $"ActivateType<{FullName.CppWinRTName()}>",
++					null,
++					null,
++					wrl: () =>
++					{
++						if (IsLocalType)
++						{
++							return $"ActivateLocalType<{FullName.WRLName().NoABIPrefix()}>";
++						}
++						else if (IsActivatable)
++						{
++							return $"ActivateType<RuntimeClass_{StandardName.GetMemberFriendlyName()}>";
++						}
++						else
++						{
++							return $"ActivateTypeComposable<RuntimeClass_{StandardName.GetMemberFriendlyName()}, {FullFactoryInterfaceForComposingName}, {FullDefaultInterfaceName}>";
++						}
++					});
+ 		}
+ 	}
+ 
+@@ -254,11 +296,14 @@ internal class TypeGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "CollectionAdd<" + FullName.CppCXName() + ", " + ItemType.FullName.CppCXName() + ItemType.RefHat + ">", () => "CollectionAdd<" + FullName.CppWinRTName() + ", " + ItemType.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "CollectionAdd_" + StandardName.GetMemberFriendlyName() + "_" + ItemType.StandardName.GetMemberFriendlyName());
++			return IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"CollectionAdd_{StandardName.GetMemberFriendlyName()}_{ItemType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"CollectionAdd<{FullName.CppCXName()}, {ItemType.FullName.CppCXName()}{ItemType.RefHat}>",
++					() => $"CollectionAdd<{FullName.CppWinRTName()}, {ItemType.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"CollectionAdd<{ItemType.FullName.WRLName() + (!ItemType.IsValueType && ItemType.UnderlyingType.FullName != "System.String" ? "*" : string.Empty)}>");
+ 		}
+ 	}
+ 
+@@ -266,11 +311,14 @@ internal class TypeGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "DictionaryAdd<" + FullName.CppCXName() + ", " + KeyType.FullName.CppCXName() + KeyType.RefHat + ", " + ItemType.FullName.CppCXName() + ItemType.RefHat + ">", () => "DictionaryAdd<" + FullName.CppWinRTName() + ", " + KeyType.FullName.CppWinRTName() + ", " + ItemType.FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "DictionaryAdd_" + StandardName.GetMemberFriendlyName() + "_" + KeyType.StandardName.GetMemberFriendlyName() + "_" + ItemType.StandardName.GetMemberFriendlyName());
++			return IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"DictionaryAdd_{StandardName.GetMemberFriendlyName()}_{KeyType.StandardName.GetMemberFriendlyName()}_{ItemType.StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"DictionaryAdd<{FullName.CppCXName()}, {KeyType.FullName.CppCXName()}{KeyType.RefHat}, {ItemType.FullName.CppCXName()}{ItemType.RefHat}>",
++					() => $"DictionaryAdd<{FullName.CppWinRTName()}, {KeyType.FullName.CppWinRTName()}, {ItemType.FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"DictionaryAdd<{KeyType.FullName.WRLName() + (!KeyType.IsValueType && KeyType.UnderlyingType.FullName != "System.String" ? "*" : string.Empty)}, {ItemType.FullName.WRLName() + (!ItemType.IsValueType && ItemType.UnderlyingType.FullName != "System.String" ? "*" : string.Empty)}>");
+ 		}
+ 	}
+ 
+@@ -278,11 +326,14 @@ internal class TypeGenInfo
+ 	{
+ 		get
+ 		{
+-			if (!IncrementalTypeInfo)
+-			{
+-				return new LanguageSpecificString(() => "FromStringConverter<" + FullName.CppCXName() + ">", () => "FromStringConverter<" + FullName.CppWinRTName() + ">", null, null);
+-			}
+-			return new LanguageSpecificString(() => "FromStringConverter_" + StandardName.GetMemberFriendlyName());
++			return IncrementalTypeInfo ?
++				new LanguageSpecificString(() => $"FromStringConverter_{StandardName.GetMemberFriendlyName()}") :
++				new LanguageSpecificString(
++					() => $"FromStringConverter<{FullName.CppCXName()}>",
++					() => $"FromStringConverter<{FullName.CppWinRTName()}>",
++					null,
++					null,
++					() => $"FromStringConverter<{FullName.WRLName()}>");
+ 		}
+ 	}
+ 

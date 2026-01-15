@@ -1,0 +1,90 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/Language.cs b/Microsoft/Xaml/XamlCompiler/Language.cs
+index 8ef9c1a..5898da6 100644
+--- a/Microsoft/Xaml/XamlCompiler/Language.cs
++++ b/Microsoft/Xaml/XamlCompiler/Language.cs
+@@ -8,13 +8,78 @@ namespace Microsoft.Xaml.XamlCompiler;
+ 
+ internal class Language
+ {
+-	private static Language[] languages = new Language[4]
+-	{
+-		new Language("C#", ".g.i.cs", ".g.cs", isManaged: true, isStringNullable: true, isExperimental: false, () => new CSharpAppPass1(), () => new CSharpPagePass2(), () => new CSharpPagePass1(), () => new CSharpPagePass2(), null, null, null, null, () => new CSharpTypeInfoPass2(), null, null),
+-		new Language("VB", ".g.i.vb", ".g.vb", isManaged: true, isStringNullable: true, isExperimental: false, () => new VisualBasicAppPass1(), () => new VisualBasicPagePass2(), () => new VisualBasicPagePass1(), () => new VisualBasicPagePass2(), null, null, null, null, () => new VisualBasicTypeInfoPass2(), null, null),
+-		new Language("C++", ".g.h", ".g.hpp", isManaged: false, isStringNullable: true, isExperimental: false, () => new MoComCppAppPass1(), () => new MoComCppAppPass2(), () => new MoComCppPagePass1(), () => new MoComCppPagePass2(), null, () => new CppWinRT_XamlMetaDataProviderPass2(), () => new MoComCppTypeInfoPass1(), () => new MoComCppTypeInfoPass1Impl(), () => new MoComCppTypeInfoPass2(), () => new MoComCppBindingInfoPass1(), () => new MoComCppBindingInfoPass2()),
+-		new Language("CppWinRT", ".xaml.g.h", ".xaml.g.hpp", isManaged: false, isStringNullable: false, isExperimental: false, () => new CppWinRT_AppPass1(), () => new CppWinRT_AppPass2(), () => new CppWinRT_PagePass1(), () => new CppWinRT_PagePass2(), () => new CppWinRT_XamlMetaDataProviderPass1(), () => new CppWinRT_XamlMetaDataProviderPass2(), () => new CppWinRT_TypeInfoPass1(), () => new CppWinRT_TypeInfoPass1Impl(), () => new CppWinRT_TypeInfoPass2(), () => new CppWinRT_BindingInfoPass1(), () => new CppWinRT_BindingInfoPass2())
+-	};
++        private static Language[] languages = {
++            new Language(
++                ProgrammingLanguage.CSharp,
++                ".g.i.cs", ".g.cs", true, true, false,
++                () => new CSharpAppPass1(),
++                () => new CSharpPagePass2(),
++                () => new CSharpPagePass1(),
++                () => new CSharpPagePass2(),
++                null,
++                null,
++                null,
++                null,
++                () => new CSharpTypeInfoPass2(),
++                null,
++                null),
++            new Language(
++                ProgrammingLanguage.VB,
++                ".g.i.vb", ".g.vb", true, true, false,
++                () => new VisualBasicAppPass1(),
++                () => new VisualBasicPagePass2(),
++                () => new VisualBasicPagePass1(),
++                () => new VisualBasicPagePass2(),
++                null,
++                null,
++                null,
++                null,
++                () => new VisualBasicTypeInfoPass2(),
++                null,
++                null),
++            new Language(
++                ProgrammingLanguage.CppCX,
++                ".g.h", ".g.hpp", false, true, false,
++                () => new MoComCppAppPass1(),
++                () => new MoComCppAppPass2(),
++                () => new MoComCppPagePass1(),
++                () => new MoComCppPagePass2(),
++                null,
++                () => new CppWinRT_XamlMetaDataProviderPass2(),
++                () => new MoComCppTypeInfoPass1(),
++                () => new MoComCppTypeInfoPass1Impl(),
++                () => new MoComCppTypeInfoPass2(),
++                () => new MoComCppBindingInfoPass1(),
++                () => new MoComCppBindingInfoPass2()),
++            new Language(
++                ProgrammingLanguage.CppWinRT,
++                ".xaml.g.h", ".xaml.g.hpp", false, false, false,
++                () => new CppWinRT_AppPass1(),
++                () => new CppWinRT_AppPass2(),
++                () => new CppWinRT_PagePass1(),
++                () => new CppWinRT_PagePass2(),
++                () => new CppWinRT_XamlMetaDataProviderPass1(),
++                () => new CppWinRT_XamlMetaDataProviderPass2(),
++                () => new CppWinRT_TypeInfoPass1(),
++                () => new CppWinRT_TypeInfoPass1Impl(),
++                () => new CppWinRT_TypeInfoPass2(),
++                () => new CppWinRT_BindingInfoPass1(),
++                () => new CppWinRT_BindingInfoPass2()),
++            new Language(
++                ProgrammingLanguage.WRL,
++                ".xaml.g.h", ".xaml.g.hpp", false, false, false,
++                () => new CppWinRT_AppPass1(),
++                () => new CppWinRT_AppPass2(),
++                () => new WRL_PagePass1(),
++                () => new WRL_PagePass2(),
++                () => new WRL_XamlMetaDataProviderPass1(),
++                () => new WRL_XamlMetaDataProviderPass2(),
++                () => new WRL_TypeInfoPass1(),
++                () => new WRL_TypeInfoPass1Impl(),
++                () => new WRL_TypeInfoPass2(),
++                () => new WRL_BindingInfoPass1(),
++                () => new WRL_BindingInfoPass2()),
++            };
+ 
+ 	public string Name { get; }
+ 

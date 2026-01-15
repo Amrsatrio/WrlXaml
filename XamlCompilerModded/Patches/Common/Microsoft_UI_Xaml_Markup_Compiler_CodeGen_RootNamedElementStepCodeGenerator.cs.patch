@@ -1,0 +1,88 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
+index 882e598..bae487f 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
+@@ -1,4 +1,6 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -11,7 +13,31 @@ internal class RootNamedElementStepCodeGenerator : BindPathStepCodeGenerator<Roo
+ 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+ 			string fieldName = ((!string.IsNullOrEmpty(base.Instance.UpdateCallParamOverride)) ? base.Instance.UpdateCallParamOverride : base.Instance.FieldName);
+-			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + fieldName, () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + fieldName + "()", () => parentPathExpression.CSharpName() + "." + fieldName, () => parentPathExpression.VBName() + "." + fieldName);
++			return new LanguageSpecificString(
++				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + fieldName,
++				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + fieldName + "()",
++				() => parentPathExpression.CSharpName() + "." + fieldName,
++				() => parentPathExpression.VBName() + "." + fieldName,
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++					return
++$$"""
++// BEGIN RootNamedElementStepCodeGenerator.PathExpression
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{parentPathExpression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = static_cast<{{Instance.Parent.ValueType.WRLName().NoABIPrefix()}}*>({{parentPathExpression.WRLOutVarName()}})->Get{{Instance.FieldName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END RootNamedElementStepCodeGenerator.PathExpression
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ 
+@@ -21,9 +47,41 @@ internal class RootNamedElementStepCodeGenerator : BindPathStepCodeGenerator<Roo
+ 		{
+ 			if (!string.IsNullOrEmpty(base.Instance.UpdateCallParamOverride))
+ 			{
+-				return new LanguageSpecificString(() => base.Instance.UpdateCallParamOverride ?? "", () => base.Instance.UpdateCallParamOverride ?? "", () => "bindings." + base.Instance.UpdateCallParamOverride, () => "bindings." + base.Instance.UpdateCallParamOverride);
++				return new LanguageSpecificString(
++					() => base.Instance.UpdateCallParamOverride ?? "",
++					() => base.Instance.UpdateCallParamOverride ?? "",
++					() => "bindings." + base.Instance.UpdateCallParamOverride,
++					() => "bindings." + base.Instance.UpdateCallParamOverride,
++					wrl: () =>
++					{
++						throw new System.NotImplementedException("WRL UpdateCallParam not implemented for RootNamedElementStep with override.");
++					},
++					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
++			}
++			else
++			{
++				return new LanguageSpecificString(
++					() => "obj->" + base.Instance.FieldName,
++					() => "obj." + base.Instance.FieldName + "()",
++					() => "obj." + base.Instance.FieldName,
++					() => "obj." + base.Instance.FieldName,
++					wrl: () =>
++					{
++						string n_temp = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Temp"); // return value smart ptr
++						return
++$$"""
++// BEGIN RootNamedElementStepCodeGenerator.UpdateCallParam - No override branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    hrT = static_cast<{{Instance.Parent.ValueType.WRLName().NoABIPrefix()}}*>(obj)->Get{{Instance.FieldName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{UpdateCallParam.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END RootNamedElementStepCodeGenerator.UpdateCallParam - No override branch
++""";
++					},
++					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
+ 			}
+-			return new LanguageSpecificString(() => "obj->" + base.Instance.FieldName, () => "obj." + base.Instance.FieldName + "()", () => "obj." + base.Instance.FieldName, () => "obj." + base.Instance.FieldName);
+ 		}
+ 	}
+ }

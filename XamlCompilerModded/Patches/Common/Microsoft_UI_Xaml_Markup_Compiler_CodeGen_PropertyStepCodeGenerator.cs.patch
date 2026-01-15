@@ -1,0 +1,168 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
+index 222e967..a04d185 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
+@@ -1,4 +1,6 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -8,9 +10,61 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+-			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + base.Instance.PropertyName, () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + base.Instance.PropertyName + "()", () => parentPathExpression.CSharpName() + "." + base.Instance.PropertyName, () => parentPathExpression.VBName() + "." + base.Instance.PropertyName);
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
++			return new LanguageSpecificString(
++				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.PropertyName,
++				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.PropertyName + "()",
++				() => parentPathExpression.CSharpName() + "." + Instance.PropertyName,
++				() => parentPathExpression.VBName() + "." + Instance.PropertyName,
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++					if (Instance.Parent is StaticRootStep)
++					{
++						return
++$$"""
++// BEGIN PropertyStepCodeGenerator.PathExpression - static branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{Instance.Parent.ValueType.WRLNameStaticInterfaceSpecific($"get_{Instance.PropertyName}")}}> memberDeclaringStatics;
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{Instance.Parent.ValueType.ToRuntimeClassNameConstant()}}).Get(),
++        &memberDeclaringStatics);
++    if (SUCCEEDED(hrT))
++    {
++        hrT = memberDeclaringStatics->get_{{Instance.PropertyName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END PropertyStepCodeGenerator.PathExpression - static branch
++""";
++					}
++					else
++					{
++						return
++$$"""
++// BEGIN PropertyStepCodeGenerator.PathExpression - non-static branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{parentPathExpression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++{{Instance.Parent.ValueType.WRLDeclareQIIfNeeded(Instance.Parent.ValueType.WRLNameInterfaceSpecific($"get_{Instance.PropertyName}"), parentPathExpression.WRLOutVarName(), "pMemberDeclaringInterface").WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = pMemberDeclaringInterface->get_{{Instance.PropertyName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++        }
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END PropertyStepCodeGenerator.PathExpression - non-static branch
++""";
++					}
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ 
+@@ -18,9 +72,88 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+-			return new LanguageSpecificString(() => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + base.Instance.PropertyName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + base.Instance.PropertyName + "()", () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + base.Instance.PropertyName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + base.Instance.PropertyName);
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
++			return new LanguageSpecificString(
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + Instance.PropertyName,
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + Instance.PropertyName + "()",
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + Instance.PropertyName,
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + Instance.PropertyName,
++				wrl: () =>
++				{
++					string n_temp = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Temp"); // return value smart ptr
++					if (Instance.Parent is StaticRootStep)
++					{
++						return
++$$"""
++// BEGIN PropertyStepCodeGenerator.UpdateCallParam() - static branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{Instance.Parent.ValueType.WRLNameStaticInterfaceSpecific($"get_{Instance.PropertyName}")}}> memberDeclaringStatics;
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{Instance.Parent.ValueType.ToRuntimeClassNameConstant()}}).Get(),
++        &memberDeclaringStatics);
++    if (SUCCEEDED(hrT))
++    {
++        hrT = memberDeclaringStatics->get_{{Instance.PropertyName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{UpdateCallParam.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END PropertyStepCodeGenerator.UpdateCallParam() - static branch
++""";
++					}
++					else
++					{
++						return
++$$"""
++// BEGIN PropertyStepCodeGenerator.UpdateCallParam() - non-static branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{Instance.Parent.ValueType.WRLDeclareQIIfNeeded(Instance.Parent.ValueType.WRLNameInterfaceSpecific($"get_{Instance.PropertyName}"), "obj", "pMemberDeclaringInterface").WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = pMemberDeclaringInterface->get_{{Instance.PropertyName}}({{Instance.ValueType.WRLOutParam(n_temp)}});
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{UpdateCallParam.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END PropertyStepCodeGenerator.UpdateCallParam() - non-static branch
++""";
++					}
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
+ 		}
+ 	}
++
++	// @MOD WRL support
++	public override ICodeGenOutput PathSetExpression(ICodeGenOutput value)
++	{
++		var baseOutput = base.PathSetExpression(value);
++		return new LanguageSpecificString(
++			baseOutput.CppCXName,
++			baseOutput.CppWinRTName,
++			baseOutput.CSharpName,
++			baseOutput.VBName,
++			wrl: () =>
++			{
++				string n_output = Instance.Parent.CodeGen().PathExpression.WRLOutVarName();
++return
++$$"""
++// BEGIN PropertyStepCodeGenerator.PathSetExpression()
++// Paste value.WRLName()
++{{value.WRLName()}}
++
++// Paste Instance.Parent.CodeGen().PathExpression.WRLName()
++{{(Instance.Parent.NeedsCheckForNull ? "/* Already null-checked */" : Instance.Parent.CodeGen().PathExpression.WRLName())}}
++
++if (SUCCEEDED(hrT))
++{
++    hrT = {{n_output}}->put_{{Instance.PropertyName}}({{value.WRLOutVarName()}});
++}
++// END PropertyStepCodeGenerator.PathSetExpression()
++""";
++			},
++			wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathSetExpression), "Out"));
++	}
+ }

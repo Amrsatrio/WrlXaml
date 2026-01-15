@@ -1,0 +1,339 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs b/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
+index ee2819a..3881583 100644
+--- a/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
++++ b/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
+@@ -16,18 +16,20 @@ internal class XamlSchemaCodeInfo
+ 		public string CppCXName;
+ 
+ 		public string CppWinRTName;
++		public string WRLName;
+ 
+ 		public bool StripSystemPrefix;
+ 
+-		public ProjectionDefinition(string cppCXName, string cppWinRTName, bool stripSystemPrefix = true)
++		public ProjectionDefinition(string cppCXName, string cppWinRTName, string wrlName, bool stripSystemPrefix = true)
+ 		{
+ 			CppCXName = cppCXName;
+ 			CppWinRTName = cppWinRTName;
++			WRLName = wrlName;
+ 			StripSystemPrefix = stripSystemPrefix;
+ 		}
+ 
+ 		public ProjectionDefinition(string all)
+-			: this(all, all)
++			: this(all, all, all)
+ 		{
+ 		}
+ 	}
+@@ -97,37 +99,37 @@ internal class XamlSchemaCodeInfo
+ 			if (_winRtPrimitiveTypeList == null)
+ 			{
+ 				_winRtPrimitiveTypeList = new Dictionary<string, ProjectionDefinition>();
+-				_winRtPrimitiveTypeList.Add("System.Byte", new ProjectionDefinition("default::uint8", "uint8_t"));
+-				_winRtPrimitiveTypeList.Add("System.UInt8", new ProjectionDefinition("default::uint8", "uint8_t"));
+-				_winRtPrimitiveTypeList.Add("System.SByte", new ProjectionDefinition("default::int8", "int8_t"));
+-				_winRtPrimitiveTypeList.Add("System.Int8", new ProjectionDefinition("default::int8", "int8_t"));
+-				_winRtPrimitiveTypeList.Add("System.Char", new ProjectionDefinition("default::char16", "wchar_t"));
+-				_winRtPrimitiveTypeList.Add("System.Char16", new ProjectionDefinition("default::char16", "wchar_t"));
+-				_winRtPrimitiveTypeList.Add("System.Single", new ProjectionDefinition("default::float32", "float"));
+-				_winRtPrimitiveTypeList.Add("System.Double", new ProjectionDefinition("default::float64", "double"));
+-				_winRtPrimitiveTypeList.Add("System.Int16", new ProjectionDefinition("default::int16", "int16_t"));
+-				_winRtPrimitiveTypeList.Add("System.Int32", new ProjectionDefinition("default::int32", "int32_t"));
+-				_winRtPrimitiveTypeList.Add("System.Int64", new ProjectionDefinition("default::int64", "int64_t"));
+-				_winRtPrimitiveTypeList.Add("System.UInt16", new ProjectionDefinition("default::uint16", "uint16_t"));
+-				_winRtPrimitiveTypeList.Add("System.UInt32", new ProjectionDefinition("default::uint32", "uint32_t"));
+-				_winRtPrimitiveTypeList.Add("System.UInt64", new ProjectionDefinition("default::uint64", "uint64_t"));
+-				_winRtPrimitiveTypeList.Add("System.Boolean", new ProjectionDefinition("Platform::Boolean", "bool"));
+-				_winRtPrimitiveTypeList.Add("System.String", new ProjectionDefinition("Platform::String", "::winrt::hstring"));
+-				_winRtPrimitiveTypeList.Add("System.Object", new ProjectionDefinition("Platform::Object", "::winrt::Windows::Foundation::IInspectable"));
+-				_winRtPrimitiveTypeList.Add("System.Guid", new ProjectionDefinition("Platform::Guid", "GUID"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.IReference`1", new ProjectionDefinition("Platform::IBox`1", "::winrt::Windows::Foundation::IReference`1"));
+-				_winRtPrimitiveTypeList.Add("System.TimeSpan", new ProjectionDefinition("Windows::Foundation::TimeSpan", "::winrt::Windows::Foundation::TimeSpan"));
+-				_winRtPrimitiveTypeList.Add("System.Type", new ProjectionDefinition("Platform::Type", null, stripSystemPrefix: false));
+-				_winRtPrimitiveTypeList.Add("System.Enum", new ProjectionDefinition("Platform::Enum", null, stripSystemPrefix: false));
+-				_winRtPrimitiveTypeList.Add("System.ValueType", new ProjectionDefinition("Platform::ValueType", null, stripSystemPrefix: false));
+-				_winRtPrimitiveTypeList.Add("System.UIntPtr", new ProjectionDefinition("Platform::UIntPtr", null, stripSystemPrefix: false));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector2", new ProjectionDefinition("Windows::Foundation::Numerics::float2", "::winrt::Windows::Foundation::Numerics::float2"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector3", new ProjectionDefinition("Windows::Foundation::Numerics::float3", "::winrt::Windows::Foundation::Numerics::float3"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector4", new ProjectionDefinition("Windows::Foundation::Numerics::float4", "::winrt::Windows::Foundation::Numerics::float4"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Plane", new ProjectionDefinition("Windows::Foundation::Numerics::Plane", "::winrt::Windows::Foundation::Numerics::Plane"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Quaternion", new ProjectionDefinition("Windows::Foundation::Numerics::quaternion", "::winrt::Windows::Foundation::Numerics::quaternion"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Matrix3x2", new ProjectionDefinition("Windows::Foundation::Numerics::float3x2", "::winrt::Windows::Foundation::Numerics::float3x2"));
+-				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Matrix4x4", new ProjectionDefinition("Windows::Foundation::Numerics::float4x4", "::winrt::Windows::Foundation::Numerics::float4x4"));
++				_winRtPrimitiveTypeList.Add("System.Byte", new ProjectionDefinition("default::uint8", "uint8_t", "UINT8"));
++				_winRtPrimitiveTypeList.Add("System.UInt8", new ProjectionDefinition("default::uint8", "uint8_t", "UINT8"));
++				_winRtPrimitiveTypeList.Add("System.SByte", new ProjectionDefinition("default::int8", "int8_t", "INT8"));
++				_winRtPrimitiveTypeList.Add("System.Int8", new ProjectionDefinition("default::int8", "int8_t", "INT8"));
++				_winRtPrimitiveTypeList.Add("System.Char", new ProjectionDefinition("default::char16", "wchar_t", "WCHAR"));
++				_winRtPrimitiveTypeList.Add("System.Char16", new ProjectionDefinition("default::char16", "wchar_t", "WCHAR"));
++				_winRtPrimitiveTypeList.Add("System.Single", new ProjectionDefinition("default::float32", "float", "float"));
++				_winRtPrimitiveTypeList.Add("System.Double", new ProjectionDefinition("default::float64", "double", "double"));
++				_winRtPrimitiveTypeList.Add("System.Int16", new ProjectionDefinition("default::int16", "int16_t", "INT16"));
++				_winRtPrimitiveTypeList.Add("System.Int32", new ProjectionDefinition("default::int32", "int32_t", "int"));
++				_winRtPrimitiveTypeList.Add("System.Int64", new ProjectionDefinition("default::int64", "int64_t", "INT64"));
++				_winRtPrimitiveTypeList.Add("System.UInt16", new ProjectionDefinition("default::uint16", "uint16_t", "UINT16"));
++				_winRtPrimitiveTypeList.Add("System.UInt32", new ProjectionDefinition("default::uint32", "uint32_t", "UINT32"));
++				_winRtPrimitiveTypeList.Add("System.UInt64", new ProjectionDefinition("default::uint64", "uint64_t", "UINT64"));
++				_winRtPrimitiveTypeList.Add("System.Boolean", new ProjectionDefinition("Platform::Boolean", "bool", "boolean"));
++				_winRtPrimitiveTypeList.Add("System.String", new ProjectionDefinition("Platform::String", "::winrt::hstring", "HSTRING"));
++				_winRtPrimitiveTypeList.Add("System.Object", new ProjectionDefinition("Platform::Object", "::winrt::Windows::Foundation::IInspectable", "IInspectable"));
++				_winRtPrimitiveTypeList.Add("System.Guid", new ProjectionDefinition("Platform::Guid", "GUID", "GUID"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.IReference`1", new ProjectionDefinition("Platform::IBox`1", "::winrt::Windows::Foundation::IReference`1", "::ABI::Windows::Foundation::IReference`1"));
++				_winRtPrimitiveTypeList.Add("System.TimeSpan", new ProjectionDefinition("Windows::Foundation::TimeSpan", "::winrt::Windows::Foundation::TimeSpan", "::ABI::Windows::Foundation::TimeSpan"));
++				_winRtPrimitiveTypeList.Add("System.Type", new ProjectionDefinition("Platform::Type", null, null, stripSystemPrefix: false));
++				_winRtPrimitiveTypeList.Add("System.Enum", new ProjectionDefinition("Platform::Enum", null, null, stripSystemPrefix: false));
++				_winRtPrimitiveTypeList.Add("System.ValueType", new ProjectionDefinition("Platform::ValueType", null, null, stripSystemPrefix: false));
++				_winRtPrimitiveTypeList.Add("System.UIntPtr", new ProjectionDefinition("Platform::UIntPtr", null, null, stripSystemPrefix: false));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector2", new ProjectionDefinition("Windows::Foundation::Numerics::float2", "::winrt::Windows::Foundation::Numerics::float2", "::ABI::Windows::Foundation::Numerics::Vector2"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector3", new ProjectionDefinition("Windows::Foundation::Numerics::float3", "::winrt::Windows::Foundation::Numerics::float3", "::ABI::Windows::Foundation::Numerics::Vector3"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Vector4", new ProjectionDefinition("Windows::Foundation::Numerics::float4", "::winrt::Windows::Foundation::Numerics::float4", "::ABI::Windows::Foundation::Numerics::Vector4"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Plane", new ProjectionDefinition("Windows::Foundation::Numerics::Plane", "::winrt::Windows::Foundation::Numerics::Plane", "::ABI::Windows::Foundation::Numerics::Plane"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Quaternion", new ProjectionDefinition("Windows::Foundation::Numerics::quaternion", "::winrt::Windows::Foundation::Numerics::quaternion", "::ABI::Windows::Foundation::Numerics::Quaternion"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Matrix3x2", new ProjectionDefinition("Windows::Foundation::Numerics::float3x2", "::winrt::Windows::Foundation::Numerics::float3x2", "::ABI::Windows::Foundation::Numerics::Matrix3x2"));
++				_winRtPrimitiveTypeList.Add("Windows.Foundation.Numerics.Matrix4x4", new ProjectionDefinition("Windows::Foundation::Numerics::float4x4", "::winrt::Windows::Foundation::Numerics::float4x4", "::ABI::Windows::Foundation::Numerics::Matrix4x4"));
+ 			}
+ 			return _winRtPrimitiveTypeList;
+ 		}
+@@ -363,101 +365,160 @@ internal class XamlSchemaCodeInfo
+ 		return true;
+ 	}
+ 
+-	public static string GetFullGenericNestedName(Type type, string programmingLanguage, bool globalized, bool setAirity)
++	public static String GetFullGenericNestedName(Type type, string programmingLanguage, bool globalized, bool setAirity)
+ 	{
+-		type = GetArrayElementType(type, out var suffix, programmingLanguage);
+-		string text = FixNestedTypeName(type);
+-		string text2 = "";
+-		string text3 = ProjectionNameTranslation(text, programmingLanguage);
++		string arraySuffix;
++		// if it isn't an array this does nothing.
++		type = GetArrayElementType(type, out arraySuffix, programmingLanguage);
++
++		string typeName = FixNestedTypeName(type);
++		string globalizerToken = "";
++		string simpleTypeName = ProjectionNameTranslation(typeName, programmingLanguage);
++
+ 		if (globalized)
+ 		{
+ 			switch (programmingLanguage)
+ 			{
+-			case "WinRT":
+-				text2 = "";
+-				break;
+-			case "C#":
+-				text2 = "global::";
+-				break;
+-			case "VB":
+-				text2 = "Global.";
+-				break;
+-			case "C++":
+-				text2 = "::";
+-				break;
+-			case "CppWinRT":
+-				if (!WinRtPrimitiveTypesForProjection.ContainsKey(text))
+-				{
+-					text2 = "::winrt::";
+-				}
+-				break;
+-			default:
+-				throw new ArgumentException("programmingLanguage");
++				case ProgrammingLanguage.IdlWinRT:
++					globalizerToken = "";
++					break;
++				case ProgrammingLanguage.CSharp:
++					globalizerToken = "global::";
++					break;
++
++				case ProgrammingLanguage.VB:
++					globalizerToken = "Global.";
++					break;
++
++				case ProgrammingLanguage.CppCX:
++					globalizerToken = "::";
++					break;
++
++				case ProgrammingLanguage.CppWinRT:
++					if (!WinRtPrimitiveTypesForProjection.ContainsKey(typeName))
++					{
++						// For CppWinRT, only prefix with ::winrt if the type is not a fundamental type
++						globalizerToken = "::winrt::";
++					}
++					break;
++
++				case ProgrammingLanguage.WRL:
++					if (!WinRtPrimitiveTypesForProjection.ContainsKey(typeName))
++					{
++						// For WRL, only prefix with ::ABI if the type is not a fundamental type
++						globalizerToken = "::ABI::";
++					}
++					break;
++
++				default:
++					throw new ArgumentException("programmingLanguage");
+ 			}
+ 		}
+ 		if (!type.IsGenericType)
+ 		{
+-			return text2 + text3 + suffix;
++			return globalizerToken + simpleTypeName + arraySuffix;
+ 		}
+-		string text4 = "<";
+-		string text5 = ">";
+-		string text6 = string.Empty;
+-		string text7 = string.Empty;
++
++		string OpenTypeParameters = "<";
++		string CloseTypeParameters = ">";
++		string AiritySpecifier = String.Empty;
++		string AfterNonValueTypes = String.Empty;
++
+ 		switch (programmingLanguage)
+ 		{
+-		case "WinRT":
+-			text6 = "`{0}";
+-			break;
+-		case "VB":
+-			text4 = "(Of ";
+-			text5 = ")";
+-			break;
+-		case "C++":
+-			text7 = "^";
+-			break;
+-		default:
+-			throw new ArgumentException("programmingLanguage");
+-		case "C#":
+-		case "CppWinRT":
+-			break;
++			case ProgrammingLanguage.IdlWinRT:
++				AiritySpecifier = "`{0}";
++				break;
++
++			case ProgrammingLanguage.CSharp:
++				break;
++
++			case ProgrammingLanguage.VB:
++				OpenTypeParameters = "(Of ";
++				CloseTypeParameters = ")";
++				break;
++
++			case ProgrammingLanguage.CppCX:
++				AfterNonValueTypes = "^";
++				break;
++
++			case ProgrammingLanguage.CppWinRT:
++				break;
++
++			case ProgrammingLanguage.WRL:
++				// AfterNonValueTypes = "*";
++
++				// We'll use the mangled parameterized type
++				int lastColonColon = simpleTypeName.LastIndexOf("::", StringComparison.Ordinal);
++				simpleTypeName = simpleTypeName.Insert(lastColonColon != -1 ? lastColonColon + 2 : 0, "__F");
++
++				OpenTypeParameters = string.Empty;
++				CloseTypeParameters = string.Empty;
++				AiritySpecifier = "_{0}_";
++				break;
++
++			default:
++				throw new ArgumentException("programmingLanguage");
+ 		}
+-		if (!setAirity)
++		if (setAirity == false)
+ 		{
+-			text6 = string.Empty;
++			AiritySpecifier = String.Empty;
+ 		}
+-		Type[] genericArguments = type.GetGenericArguments();
+-		int num = 0;
+-		string[] array = text3.Split('`');
+-		string text8 = array[0];
+-		for (int i = 1; i < array.Length; i++)
++
++		Type[] typeArguments = type.GetGenericArguments();
++		// Debug.Assert(typeArguments.Length > 0);
++
++		// Nested Generics AAA<X,Y>.BBB<Z>
++		// Will Look like "AAA`2.BBB`1" with a list of X, Y, Z type arguments.
++
++		int iTypeArgument = 0;
++		string[] nestedGenericParts = simpleTypeName.Split('`');
++		string result = nestedGenericParts[0];
++
++		for (int iParts = 1; iParts < nestedGenericParts.Length; iParts++)
+ 		{
+-			string namePart = array[i];
++			string part = nestedGenericParts[iParts];
+ 			string remainder;
+-			int num2 = CountTypeArgs(namePart, out remainder);
+-			if (!string.IsNullOrEmpty(text6))
++			int argCount = CountTypeArgs(part, out remainder);
++
++			if (!String.IsNullOrEmpty(AiritySpecifier))
+ 			{
+-				text8 += string.Format(CultureInfo.InvariantCulture, text6, num2);
++				result += String.Format(CultureInfo.InvariantCulture, AiritySpecifier, argCount);
+ 			}
+-			text8 += text4;
+-			for (int j = 0; j < num2; j++)
++			result += OpenTypeParameters;
++
++			// Distribuite the next "argCount" type parameters.
++			// eg: < X , Y >
++			for (int iArg = 0; iArg < argCount; iArg++)
+ 			{
+-				Type type2 = genericArguments[num + j];
+-				string text9 = GetFullGenericNestedName(type2, programmingLanguage, globalized: true);
+-				if (!type2.IsValueType)
++				Type argType = typeArguments[iTypeArgument + iArg];
++				string genericTypeName = GetFullGenericNestedName(argType, programmingLanguage, programmingLanguage != ProgrammingLanguage.WRL);
++				if (!argType.IsValueType && (programmingLanguage != ProgrammingLanguage.WRL || genericTypeName != "HSTRING"))
++				{
++					genericTypeName += AfterNonValueTypes;
++				}
++				if (programmingLanguage == ProgrammingLanguage.WRL)
+ 				{
+-					text9 += text7;
++					genericTypeName = genericTypeName.Replace("::", "__C");
+ 				}
+-				text8 += text9;
+-				if (j + 1 < num2)
++				result += genericTypeName;
++
++				if (iArg + 1 < argCount)
+ 				{
+-					text8 += ", ";
++					result += programmingLanguage == ProgrammingLanguage.WRL ? "_" : ", ";
+ 				}
+ 			}
+-			text8 += text5;
+-			text8 += remainder;
+-			num += num2;
++			result += CloseTypeParameters;
++			result += remainder;
++			iTypeArgument += argCount;
++		}
++
++		if (programmingLanguage == ProgrammingLanguage.WRL)
++		{
++			result += "_t";
+ 		}
+-		return text2 + text8 + suffix;
++
++		return globalizerToken + result + arraySuffix;
+ 	}
+ 
+ 	internal static string FixNestedTypeName(Type type)
+@@ -543,6 +604,12 @@ internal class XamlSchemaCodeInfo
+ 				return simpleTypeName.Replace(".", "::");
+ 			}
+ 			return value.CppWinRTName;
++		case ProgrammingLanguage.WRL:
++			if (value == null)
++			{
++				return simpleTypeName.Replace(".", "::");
++			}
++			return value.WRLName;
+ 		default:
+ 			return simpleTypeName;
+ 		}

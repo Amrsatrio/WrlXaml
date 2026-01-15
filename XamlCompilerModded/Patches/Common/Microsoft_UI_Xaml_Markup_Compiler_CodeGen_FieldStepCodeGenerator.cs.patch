@@ -1,0 +1,40 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
+index 4ac168d..8e038a5 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
+@@ -8,9 +8,15 @@ internal class FieldStepCodeGenerator : PropertyStepCodeGenerator<FieldStep>
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+-			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + base.Instance.FieldName, () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + base.Instance.FieldName, () => parentPathExpression.CSharpName() + "." + base.Instance.FieldName, () => parentPathExpression.VBName() + "." + base.Instance.FieldName);
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
++			return new LanguageSpecificString(
++				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.FieldName,
++				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.FieldName,
++				() => parentPathExpression.CSharpName() + "." + Instance.FieldName,
++				() => parentPathExpression.VBName() + "." + Instance.FieldName,
++				wrl: () => throw new System.NotSupportedException("Impossible to make field paths without projections. Find another way without using PathExpression."),
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ 
+@@ -18,9 +24,13 @@ internal class FieldStepCodeGenerator : PropertyStepCodeGenerator<FieldStep>
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+-			return new LanguageSpecificString(() => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + base.Instance.FieldName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + base.Instance.FieldName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + base.Instance.FieldName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + base.Instance.FieldName);
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
++			return new LanguageSpecificString(
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + Instance.FieldName,
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + Instance.FieldName,
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + Instance.FieldName,
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + Instance.FieldName);
+ 		}
+ 	}
+ }

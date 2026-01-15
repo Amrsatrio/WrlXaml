@@ -1,0 +1,13 @@
+diff --git a/Microsoft/MetadataReader/AssemblyNameHelper.cs b/Microsoft/MetadataReader/AssemblyNameHelper.cs
+index 473944d..c637bc5 100644
+--- a/Microsoft/MetadataReader/AssemblyNameHelper.cs
++++ b/Microsoft/MetadataReader/AssemblyNameHelper.cs
+@@ -55,7 +55,7 @@ internal static class AssemblyNameHelper
+ 			Fetch();
+ 			assemblyName.CultureInfo = m_metadata.Locale;
+ 			byte[] array = m_storage.ReadEmbeddedBlob(m_publicKey, m_cbPublicKey);
+-			assemblyName.HashAlgorithm = (AssemblyHashAlgorithm)m_hashAlgId;
++			assemblyName.HashAlgorithm = (System.Configuration.Assemblies.AssemblyHashAlgorithm)m_hashAlgId;
+ 			assemblyName.Name = m_szName.ToString();
+ 			assemblyName.Version = m_metadata.Version;
+ 			SetAssemblyNameFlags(assemblyName, m_flags);

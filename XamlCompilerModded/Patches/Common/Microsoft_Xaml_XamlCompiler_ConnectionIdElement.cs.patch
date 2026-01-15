@@ -1,0 +1,149 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
+index 789912d..e01619a 100644
+--- a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
++++ b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
+@@ -6,6 +6,7 @@ using System.Xaml;
+ using Microsoft.UI.Xaml.Markup.Compiler;
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+ using Microsoft.Xaml.DirectUI;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ using Microsoft.Xaml.XamlDom;
+ 
+ namespace Microsoft.Xaml.XamlCompiler;
+@@ -268,11 +269,49 @@ internal class ConnectionIdElement
+ 	{
+ 		get
+ 		{
+-			if (!IsWeakRef)
++			if (IsWeakRef)
+ 			{
+-				return new LanguageSpecificString(() => "this->" + ObjectCodeName, () => ObjectCodeName ?? "", () => "this." + ObjectCodeName, () => "Me." + ObjectCodeName);
++				return new LanguageSpecificString(
++					() => "this->" + ObjectCodeName + ".Resolve<" + Type.CppCXName(IncludeHatIfApplicable: false) + ">()",
++					() => "this->" + ObjectCodeName + ".get()",
++					() => $"(this.{ObjectCodeName}.Target as {Type.CSharpName()})",
++					() => $"TryCast(Me.{ObjectCodeName}.Target, {Type.VBName()})",
++					wrl: () =>
++					{
++						const string n_referenceT = "_ConnectionIdElement_ReferenceT";
++						return
++$$"""
++// BEGIN ConnectionIdElement.ReferenceExpression - IsWeakRef branch
++{{Type.WRLDeclareSmartVar(n_referenceT)}}
++if (SUCCEEDED(hrT))
++{
++    hrT = this->{{ObjectCodeName}}.As(&{{n_referenceT}});
++}
++
++{{Type.WRLNameNonSmartVar()}} _ConnectionIdElement_Reference = {{Type.WRLGetSmartVar(n_referenceT)}};
++// END ConnectionIdElement.ReferenceExpression - IsWeakRef branch
++""";
++					},
++					wrlOutVar: () => "_ConnectionIdElement_Reference");
++			}
++			else
++			{
++				return new LanguageSpecificString(
++					() => "this->" + ObjectCodeName,
++					() => ObjectCodeName ?? "",
++					() => "this." + ObjectCodeName,
++					() => "Me." + ObjectCodeName,
++					wrl: () =>
++					{
++						return
++$$"""
++// BEGIN ConnectionIdElement.ReferenceExpression - !IsWeakRef branch
++{{Type.WRLNameNonSmartVar()}} _ConnectionIdElement_Reference = {{Type.WRLGetSmartVar("this->" + ObjectCodeName)}};
++// END ConnectionIdElement.ReferenceExpression - !IsWeakRef branch
++""";
++					},
++					wrlOutVar: () => "_ConnectionIdElement_Reference");
+ 			}
+-			return new LanguageSpecificString(() => "this->" + ObjectCodeName + ".Resolve<" + Type.CppCXName(IncludeHatIfApplicable: false) + ">()", () => "this->" + ObjectCodeName + ".get()", () => $"(this.{ObjectCodeName}.Target as {Type.CSharpName()})", () => $"TryCast(Me.{ObjectCodeName}.Target, {Type.VBName()})");
+ 		}
+ 	}
+ 
+@@ -407,10 +446,80 @@ internal class ConnectionIdElement
+ 
+ 	public LanguageSpecificString GetMemberGetExpression(BindAssignmentBase bindAssignment)
+ 	{
+-		if (!bindAssignment.IsAttachable)
++		if (bindAssignment.IsAttachable)
++		{
++			return new LanguageSpecificString(
++				() => $"{bindAssignment.MemberDeclaringType.CppCXName(IncludeHatIfApplicable: false)}::Get{bindAssignment.MemberName}({ReferenceExpression.CppCXName()})",
++				() => bindAssignment.MemberDeclaringType.CppWinRTName() + "::Get" + bindAssignment.MemberName + "(" + ReferenceExpression.CppWinRTName() + ")",
++				() => $"{bindAssignment.MemberDeclaringType.CSharpName()}.Get{bindAssignment.MemberName}({ReferenceExpression.CSharpName()})",
++				() => $"{bindAssignment.MemberDeclaringType.VBName()}.Get{bindAssignment.MemberName}({ReferenceExpression.VBName()})",
++				wrl: () =>
++				{
++					const string n_temp = "_ConnectionIdElement_GetMemberGetExpression_Temp";
++					const string n_valueOutputSmart = "_ConnectionIdElement_GetMemberGetExpression_Out_Temp";
++					string memberDeclaringTypeName = bindAssignment.MemberDeclaringType.WRLNameStaticInterfaceSpecific($"Get{bindAssignment.MemberName}");
++					return
++$$"""
++// BEGIN ConnectionIdElement.GetMemberGetExpression() - bindAssignment.IsAttachable branch
++// Paste ReferenceExpression.WRLName()
++{{ReferenceExpression.WRLName()}}
++
++{{bindAssignment.MemberType.WRLDeclareSmartVar(n_valueOutputSmart)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{memberDeclaringTypeName}}> memberDeclaringStatics;
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++		::Microsoft::WRL::Wrappers::HStringReference({{bindAssignment.MemberDeclaringType.ToRuntimeClassNameConstant()}}).Get(),
++		&memberDeclaringStatics);
++	if (SUCCEEDED(hrT))
++	{
++{{bindAssignment.MemberDeclaringType.WRLDeclareQIIfNeeded(Type.WRLNameInterface(), ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(1)}}
++	    if (SUCCEEDED(hrT))
++	    {
++	        hrT = memberDeclaringStatics->Get{{bindAssignment.MemberName}}({{n_temp}}, {{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
++	    }
++    }
++}
++
++{{bindAssignment.MemberType.WRLNameNonSmartVar()}} _ConnectionIdElement_GetMemberGetExpression_Out = {{bindAssignment.MemberType.WRLGetSmartVar(n_valueOutputSmart)}};
++// END ConnectionIdElement.GetMemberGetExpression() - bindAssignment.IsAttachable branch
++""";
++				},
++				wrlOutVar: () => "_ConnectionIdElement_GetMemberGetExpression_Out");
++		}
++		else
+ 		{
+-			return new LanguageSpecificString(() => $"{ReferenceExpression.CppCXName()}->{bindAssignment.MemberName}", () => ReferenceExpression.CppWinRTName() + "." + bindAssignment.MemberName + "()", () => $"{ReferenceExpression.CSharpName()}.{bindAssignment.MemberName}", () => $"{ReferenceExpression.VBName()}.{bindAssignment.MemberName}");
++			return new LanguageSpecificString(
++				() => $"{ReferenceExpression.CppCXName()}->{bindAssignment.MemberName}",
++				() => ReferenceExpression.CppWinRTName() + "." + bindAssignment.MemberName + "()",
++				() => $"{ReferenceExpression.CSharpName()}.{bindAssignment.MemberName}",
++				() => $"{ReferenceExpression.VBName()}.{bindAssignment.MemberName}",
++				wrl: () =>
++				{
++					const string n_temp = "_ConnectionIdElement_GetMemberGetExpression_Temp";
++					const string n_valueOutputSmart = "_ConnectionIdElement_GetMemberGetExpression_Out_Temp";
++					string memberDeclaringTypeName = bindAssignment.MemberDeclaringType.WRLNameInterfaceSpecific($"get_{bindAssignment.MemberName}");
++					return
++$$"""
++// BEGIN ConnectionIdElement.GetMemberGetExpression() - !bindAssignment.IsAttachable branch
++// Paste ReferenceExpression.WRLName()
++{{ReferenceExpression.WRLName()}}
++
++{{bindAssignment.MemberType.WRLDeclareSmartVar(n_valueOutputSmart)}}
++if (SUCCEEDED(hrT))
++{
++{{bindAssignment.MemberDeclaringType.WRLDeclareQIIfNeeded(memberDeclaringTypeName, ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = {{n_temp}}->get_{{bindAssignment.MemberName}}({{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});
++    }
++}
++
++{{bindAssignment.MemberType.WRLNameNonSmartVar()}} _ConnectionIdElement_GetMemberGetExpression_Out = {{bindAssignment.MemberType.WRLGetSmartVar(n_valueOutputSmart)}};
++// END ConnectionIdElement.GetMemberGetExpression() - !bindAssignment.IsAttachable branch
++""";
++				},
++				wrlOutVar: () => "_ConnectionIdElement_GetMemberGetExpression_Out");
+ 		}
+-		return new LanguageSpecificString(() => $"{bindAssignment.MemberDeclaringType.CppCXName(IncludeHatIfApplicable: false)}::Get{bindAssignment.MemberName}({ReferenceExpression.CppCXName()})", () => bindAssignment.MemberDeclaringType.CppWinRTName() + "::Get" + bindAssignment.MemberName + "(" + ReferenceExpression.CppWinRTName() + ")", () => $"{bindAssignment.MemberDeclaringType.CSharpName()}.Get{bindAssignment.MemberName}({ReferenceExpression.CSharpName()})", () => $"{bindAssignment.MemberDeclaringType.VBName()}.Get{bindAssignment.MemberName}({ReferenceExpression.VBName()})");
+ 	}
+ }

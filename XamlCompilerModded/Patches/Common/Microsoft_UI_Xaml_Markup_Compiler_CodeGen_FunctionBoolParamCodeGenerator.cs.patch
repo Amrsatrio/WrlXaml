@@ -1,0 +1,15 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FunctionBoolParamCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FunctionBoolParamCodeGenerator.cs
+index 1185ebb..e2817ff 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FunctionBoolParamCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FunctionBoolParamCodeGenerator.cs
+@@ -4,5 +4,9 @@ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+ internal class FunctionBoolParamCodeGenerator : ParameterCodeGenerator<FunctionBoolParam>
+ {
+-	public override ICodeGenOutput PathExpression => new LanguageSpecificString(() => (!base.Instance.Value) ? "false" : "true", () => (!base.Instance.Value) ? "false" : "true", () => (!base.Instance.Value) ? "false" : "true", () => (!base.Instance.Value) ? "False" : "True");
++	public override ICodeGenOutput PathExpression => new LanguageSpecificString(
++		() => (!base.Instance.Value) ? "false" : "true",
++		() => (!base.Instance.Value) ? "false" : "true",
++		() => (!base.Instance.Value) ? "false" : "true",
++		() => (!base.Instance.Value) ? "False" : "True");
+ }

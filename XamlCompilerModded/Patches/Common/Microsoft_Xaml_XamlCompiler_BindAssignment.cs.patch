@@ -1,0 +1,88 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/BindAssignment.cs b/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
+index 14b73a4..443c8de 100644
+--- a/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
++++ b/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
+@@ -67,7 +67,22 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+ 				{
+ 					if (MemberType.IsString())
+ 					{
+-						return new LanguageSpecificString(() => fallbackMemberValue.Quotenate(), () => "L" + fallbackMemberValue.Quotenate(), () => fallbackMemberValue.Quotenate(), () => fallbackMemberValue.Quotenate());
++						return new LanguageSpecificString(() => fallbackMemberValue.Quotenate(), () => "L" + fallbackMemberValue.Quotenate(), () => fallbackMemberValue.Quotenate(), () => fallbackMemberValue.Quotenate(),
++							wrl: () =>
++							{
++								return
++$$"""
++// BEGIN BindAssignment.FallbackValueExpression - string branch
++HSTRING_HEADER _BindAssignment_FallbackValueExpression_Header;
++HSTRING _BindAssignment_FallbackValueExpression_Out = nullptr;
++if (SUCCEEDED(hrT))
++{
++    hrT = WindowsCreateStringReference(L{{fallbackMemberValue.Quotenate()}}, (UINT32)wcslen(L{{fallbackMemberValue.Quotenate()}}), &_BindAssignment_FallbackValueExpression_Header, &_BindAssignment_FallbackValueExpression_Out);
++}
++// END BindAssignment.FallbackValueExpression - string branch
++""";
++							},
++							wrlOutVar: () => "_BindAssignment_FallbackValueExpression_Out");
+ 					}
+ 					return MemberType.GetStringToThing(fallbackMemberValue.Quotenate(), isLiteral: true);
+ 				}
+@@ -84,7 +99,8 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+ 			{
+ 				if (TargetNullValue == null)
+ 				{
+-					return new LanguageSpecificString(() => LanguageSpecificString.Null.CppCXName(), () => "std::nullopt", () => LanguageSpecificString.Null.CSharpName(), () => LanguageSpecificString.Null.VBName());
++					return new LanguageSpecificString(() => LanguageSpecificString.Null.CppCXName(), () => "std::nullopt", () => LanguageSpecificString.Null.CSharpName(), () => LanguageSpecificString.Null.VBName(),
++						wrl: () => LanguageSpecificString.Null.WRLName());
+ 				}
+ 				return new LanguageSpecificString(() => TargetNullValue.Quotenate(), () => "L" + TargetNullValue.Quotenate(), () => TargetNullValue.Quotenate(), () => TargetNullValue.Quotenate());
+ 			}
+@@ -210,7 +226,22 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+ 
+ 	public LanguageSpecificString DirectAssignmentExpression(string expression)
+ 	{
+-		return GetAssignmentExpression(ValueType, MemberType, new LanguageSpecificString(() => expression), convertBack: false);
++		var expressionLSS = new LanguageSpecificString(
++			() => expression,
++			() => expression,
++			() => expression,
++			() => expression,
++			wrl: () =>
++			{
++				return
++$$"""
++// BEGIN BindAssignment.DirectAssignmentExpression
++{{ValueType.WRLNameNonSmartVar()}} _BindAssignment_DirectAssignmentExpression_Out = {{expression}};
++// END BindAssignment.DirectAssignmentExpression
++""";
++			},
++			wrlOutVar: () => "_BindAssignment_DirectAssignmentExpression_Out");
++		return GetAssignmentExpression(ValueType, MemberType, expressionLSS, convertBack: false);
+ 	}
+ 
+ 	private LanguageSpecificString GetAssignmentExpression(XamlType source, XamlType target, LanguageSpecificString expression, bool convertBack)
+@@ -221,7 +252,24 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+ 		}
+ 		if (source.CanAssignDirectlyTo(target))
+ 		{
+-			return expression;
++			return new LanguageSpecificString(
++				expression.CppCXName,
++				expression.CppWinRTName,
++				expression.CSharpName,
++				expression.VBName,
++				wrl: () =>
++				{
++					return
++$$"""
++// BEGIN BindAssignment.GetAssignmentExpression - source.CanAssignDirectlyTo(target) branch
++// Paste expression.WRLName()
++{{expression.WRLName()}}
++
++{{target.WRLNameNonSmartVar()}} _BindAssignment_AssignmentExpression_Out = {{expression.WRLOutVarName()}};
++// END BindAssignment.GetAssignmentExpression - source.CanAssignDirectlyTo(target) branch
++""";
++				},
++				wrlOutVar: () => "_BindAssignment_AssignmentExpression_Out");
+ 		}
+ 		if (source.CanInlineConvert(target))
+ 		{

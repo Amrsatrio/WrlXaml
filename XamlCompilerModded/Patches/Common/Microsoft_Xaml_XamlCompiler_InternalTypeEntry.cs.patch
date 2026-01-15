@@ -1,0 +1,15 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs b/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
+index d57e9a6..076802e 100644
+--- a/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
++++ b/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
+@@ -22,6 +22,10 @@ internal class InternalTypeEntry
+ 	public string StandardName => _type.StandardName;
+ 
+ 	public LanguageSpecificString FullName => _type.FullName;
++	public string FullDefaultInterfaceName => _type.FullDefaultInterfaceName;
++	public string FullInterfaceNameSpecific(string methodName, bool isStatic) => _type.FullInterfaceNameSpecific(methodName, isStatic);
++	public string FullFactoryInterfaceForComposingName => _type.FullFactoryInterfaceForComposingName;
++	public bool IsActivatable => _type.IsActivatable;
+ 
+ 	public string MemberFriendlyName => _type.MemberFriendlyName;
+ 

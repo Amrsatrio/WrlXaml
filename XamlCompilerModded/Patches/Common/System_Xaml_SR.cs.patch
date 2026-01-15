@@ -1,0 +1,12 @@
+diff --git a/System/Xaml/SR.cs b/System/Xaml/SR.cs
+index d982160..78e7638 100644
+--- a/System/Xaml/SR.cs
++++ b/System/Xaml/SR.cs
+@@ -3,6 +3,7 @@ using System.Resources;
+ 
+ namespace System.Xaml;
+ 
++// ReSharper disable ResourceItemNotResolved
+ internal static class SR
+ {
+ 	private static ResourceManager _resourceManager = new ResourceManager("ExceptionStringTable", typeof(SR).Assembly);

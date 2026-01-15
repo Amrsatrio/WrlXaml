@@ -1,0 +1,40 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
+index 15afa7c..42d0725 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
+@@ -5,7 +5,12 @@ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+ internal abstract class BindPathStepCodeGenerator<T> : CodeGeneratorBase<T>, IBindPathStepCodeGen where T : BindPathStep
+ {
+-	public virtual ICodeGenOutput MemberAccessOperator => new LanguageSpecificString(() => (!base.Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".", () => ".", () => ".", () => ".");
++	public virtual ICodeGenOutput MemberAccessOperator => new LanguageSpecificString(
++		() => (!Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".",
++		() => ".",
++		() => ".",
++		() => ".",
++		() => (!Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".");
+ 
+ 	public abstract ICodeGenOutput PathExpression { get; }
+ 
+@@ -19,8 +24,19 @@ internal abstract class BindPathStepCodeGenerator<T> : CodeGeneratorBase<T>, IBi
+ 
+ 	public virtual ICodeGenOutput PathSetExpression(ICodeGenOutput value)
+ 	{
+-		ICodeGenOutput pathExpression = base.Instance.CodeGen().PathExpression;
++		ICodeGenOutput pathExpression = Instance.CodeGen().PathExpression;
+ 		string cppWinrtNameNoParen = pathExpression.CppWinRTName().TrimEnd(')', '(');
+-		return new LanguageSpecificString(() => pathExpression.CppCXName() + " = " + value.CppCXName(), () => cppWinrtNameNoParen + "(" + value.CppWinRTName() + ")", () => pathExpression.CSharpName() + " = " + value.CSharpName(), () => pathExpression.VBName() + " = " + value.VBName());
++		return new LanguageSpecificString(
++			() => pathExpression.CppCXName() + " = " + value.CppCXName(),
++			() => cppWinrtNameNoParen + "(" + value.CppWinRTName() + ")",
++			() => pathExpression.CSharpName() + " = " + value.CSharpName(),
++			() => pathExpression.VBName() + " = " + value.VBName(),
++			() => throw new NotSupportedException($"Impossible to make field paths for assignment without projections. Please implement a specialized PathSetExpression for {typeof(T).Name}!"));
++	}
++
++	// @MOD WRL support
++	protected string WRL_InternalGetTempVarName(string type_mustUseNameof, string suffix)
++	{
++		return $"_{Instance.CodeName}_{Instance.GetType().Name}_{type_mustUseNameof}_{suffix}";
+ 	}
+ }

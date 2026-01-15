@@ -1,0 +1,462 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
+new file mode 100644
+index 0000000..ba76a64
+--- /dev/null
++++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
+@@ -0,0 +1,456 @@
++﻿<#@ template language="C#" inherits="WRL_CodeGenerator<TypeInfoDefinition>" visibility="internal" linePragmas="false"#>
++<#@ import namespace="Microsoft.Xaml.DirectUI" #>
++template <const wchar_t* className>
++HRESULT ActivateType(::IInspectable** pp)
++{
++    return RoActivateInstance(Wrappers::HStringReference(className).Get(), pp);
++}
++
++template <const wchar_t* className, typename TFactory, typename TType>
++HRESULT ActivateTypeComposable(::IInspectable** pp)
++{
++    *pp = nullptr;
++
++    TFactory* pFactory = nullptr;
++    HRESULT hr = <#=Projection(DUI.NamespaceWindowsFoundation)#>::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference(className).Get(),
++        &pFactory);
++    if (SUCCEEDED(hr))
++    {
++        ::IInspectable* pInnerInspectable = nullptr;
++        TType* pInner = nullptr;
++        hr = pFactory->CreateInstance(nullptr, &pInnerInspectable, &pInner);
++        if (SUCCEEDED(hr))
++        {
++            *pp = pInner; // Transfer ownership to out param
++            pInnerInspectable->Release();
++        }
++
++        pFactory->Release();
++    }
++
++    return hr;
++}
++
++template <typename T>
++HRESULT ActivateLocalType(::IInspectable** pp)
++{
++    return MakeAndInitialize<T>(pp);
++}
++
++template <typename TItem>
++HRESULT CollectionAdd(
++    ::IInspectable* instance,
++    ::IInspectable* item)
++{
++    using TVector = <#=Projection(DUI.NamespaceWindowsFoundationCollections)#>::IVector<TItem>;
++    using TItemAbi = std::remove_pointer_t<typename <#=Projection(DUI.NamespaceWindowsFoundation)#>::Internal::GetAbiType<typename TVector::T_complex>::type>;
++
++    TVector* pVector = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pVector));
++    if (SUCCEEDED(hr))
++    {
++        if constexpr (std::is_base_of_v<IInspectable, TItemAbi>)
++        {
++            TItemAbi* pItem = nullptr;
++            hr = item->QueryInterface(IID_PPV_ARGS(&pItem));
++            if (SUCCEEDED(hr))
++            {
++                hr = pVector->Append(pItem);
++                pItem->Release();
++            }
++        }
++        else
++        {
++            TItem unboxedValue = {};
++            hr = TroleBoxer::UnboxValue(item, &unboxedValue);
++            if (SUCCEEDED(hr))
++            {
++                hr = pVector->Append(unboxedValue);
++                if constexpr (std::is_same_v<TItem, HSTRING>)
++                {
++                    WindowsDeleteString(unboxedValue);
++                }
++            }
++        }
++
++        pVector->Release();
++    }
++
++    return hr;
++}
++
++template <typename TKey, typename TItem>
++HRESULT DictionaryAdd(
++    ::IInspectable* instance,
++    ::IInspectable* key,
++    ::IInspectable* item)
++{
++    using TMap = <#=Projection(DUI.NamespaceWindowsFoundationCollections)#>::IMap<TKey, TItem>;
++    using TKeyAbi = std::remove_pointer_t<typename <#=Projection(DUI.NamespaceWindowsFoundation)#>::Internal::GetAbiType<TKey>::type>;
++    using TItemAbi = std::remove_pointer_t<typename <#=Projection(DUI.NamespaceWindowsFoundation)#>::Internal::GetAbiType<TItem>::type>;
++
++    TMap* pMap = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pMap));
++    if (SUCCEEDED(hr))
++    {
++        TKey finalKey = {};
++        TItem finalItem = {};
++
++        if constexpr (std::is_base_of_v<IInspectable, TKeyAbi>)
++        {
++            TKeyAbi* pKey = nullptr;
++            hr = key->QueryInterface(IID_PPV_ARGS(&pKey));
++            if (SUCCEEDED(hr))
++            {
++                finalKey = pKey;
++            }
++        }
++        else
++        {
++            hr = TroleBoxer::UnboxValue(key, &finalKey);
++        }
++
++        if (SUCCEEDED(hr))
++        {
++            if constexpr (std::is_base_of_v<IInspectable, TItemAbi>)
++            {
++                TItemAbi* pItem = nullptr;
++                hr = item->QueryInterface(IID_PPV_ARGS(&pItem));
++                if (SUCCEEDED(hr))
++                {
++                    finalItem = pItem;
++                }
++            }
++            else
++            {
++                hr = TroleBoxer::UnboxValue(item, &finalItem);
++            }
++        }
++
++        if (SUCCEEDED(hr))
++        {
++            hr = pMap->Insert(finalKey, finalItem, nullptr);
++        }
++
++        if constexpr (std::is_base_of_v<IInspectable, TKeyAbi>)
++        {
++            finalKey->Release();
++        }
++        else if constexpr (std::is_same_v<TKey, HSTRING>)
++        {
++            WindowsDeleteString(finalKey);
++        }
++
++        if constexpr (std::is_base_of_v<IInspectable, TItemAbi>)
++        {
++            finalItem->Release();
++        }
++        else if constexpr (std::is_same_v<TItem, HSTRING>)
++        {
++            WindowsDeleteString(finalItem);
++        }
++
++        pMap->Release();
++    }
++
++    return hr;
++}
++
++template <typename T>
++HRESULT FromStringConverter(
++    XamlUserType* userType,
++    HSTRING input,
++    ::IInspectable** pp)
++{
++    *pp = nullptr;
++
++    UINT uint;
++    HRESULT hr = userType->CreateEnumUIntFromString(input, &uint);
++    if (SUCCEEDED(hr))
++    {
++        if constexpr (std::is_enum_v<T>)
++        {
++            hr = TroleBoxer::BoxValue(static_cast<std::underlying_type_t<T>>(uint), pp);
++        }
++        else
++        {
++            hr = TroleBoxer::BoxValue(static_cast<T>(uint), pp);
++        }
++    }
++
++    return hr;
++}
++<#  foreach (string name in Model.AttachableMemberGetterUniqueNames) #>
++<#  { #>
++
++template <const wchar_t* className, typename TDeclaringTypeStatics, typename TTargetType, typename TValue>
++HRESULT GetAttachableMember_<#=name#>(::IInspectable* instance, ::IInspectable** ppMember)
++{
++    *ppMember = nullptr;
++
++    TDeclaringTypeStatics* pStatics = nullptr;
++    HRESULT hr = <#=Projection(DUI.NamespaceWindowsFoundation)#>::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference(className).Get(),
++        &pStatics);
++    if (SUCCEEDED(hr))
++    {
++        TTargetType* pTarget = nullptr;
++        hr = instance->QueryInterface(IID_PPV_ARGS(&pTarget));
++        if (SUCCEEDED(hr))
++        {
++            TValue value = {};
++            hr = pStatics->Get<#=name#>(pTarget, &value);
++            if (SUCCEEDED(hr))
++            {
++                hr = TroleBoxer::BoxValue(value, ppMember);
++                if constexpr (std::is_base_of_v<IInspectable, TValue>)
++                {
++                    value->Release();
++                }
++                else if constexpr (std::is_same_v<TValue, HSTRING>)
++                {
++                    WindowsDeleteString(value);
++                }
++            }
++
++            pTarget->Release();
++        }
++
++        pStatics->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.ValueTypeMemberGetterUniqueNames) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT GetValueTypeMember_<#=name#>(::IInspectable* instance, ::IInspectable** ppMember)
++{
++    *ppMember = nullptr;
++
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        TValue value = {};
++        hr = pInstance->get_<#=name#>(&value);
++        if (SUCCEEDED(hr))
++        {
++            if constexpr (std::is_enum_v<TValue>)
++            {
++                hr = TroleBoxer::BoxValue(static_cast<std::underlying_type_t<TValue>>(value), ppMember);
++            }
++            else
++            {
++                hr = TroleBoxer::BoxValue(value, ppMember);
++            }
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.StringGetterUniqueNames) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT GetReferenceTypeStringMember_<#=name#>(::IInspectable* instance, ::IInspectable** ppMember)
++{
++    *ppMember = nullptr;
++
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        HSTRING value = nullptr;
++        hr = pInstance->get_<#=name#>(&value);
++        if (SUCCEEDED(hr))
++        {
++            ::IInspectable* pBoxed = nullptr;
++            hr = TroleBoxer::BoxValue(value, &pBoxed);
++            if (SUCCEEDED(hr))
++            {
++                *ppMember = pBoxed; // Transfer ownership to out param
++            }
++
++            WindowsDeleteString(value);
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.ReferenceTypeMemberGetterUniqueNamesNoStrings) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT GetReferenceTypeMember_<#=name#>(::IInspectable* instance, ::IInspectable** ppMember)
++{
++    *ppMember = nullptr;
++
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        TValue* pValue = nullptr;
++        hr = pInstance->get_<#=name#>(&pValue);
++        if (SUCCEEDED(hr))
++        {
++            *ppMember = pValue; // Transfer ownership to out param
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.AttachableMemberSetterUniqueNames) #>
++<#  { #>
++
++template <const wchar_t* className, typename TDeclaringTypeStatics, typename TTargetType, typename TValue>
++HRESULT SetAttachableMember_<#=name#>(::IInspectable* instance, ::IInspectable* value)
++{
++    TDeclaringTypeStatics* pStatics = nullptr;
++    HRESULT hr = <#=Projection(DUI.NamespaceWindowsFoundation)#>::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference(className).Get(),
++        &pStatics);
++    if (SUCCEEDED(hr))
++    {
++        TTargetType* pTarget = nullptr;
++        hr = instance->QueryInterface(IID_PPV_ARGS(&pTarget));
++        if (SUCCEEDED(hr))
++        {
++            TValue valueTypeValue = {};
++            hr = TroleBoxer::UnboxValue(value, &valueTypeValue);
++            if (SUCCEEDED(hr))
++            {
++                hr = pStatics->Set<#=name#>(pTarget, valueTypeValue);
++                if constexpr (std::is_base_of_v<IInspectable, TValue>)
++                {
++                    valueTypeValue->Release();
++                }
++                else if constexpr (std::is_same_v<TValue, HSTRING>)
++                {
++                    WindowsDeleteString(valueTypeValue);
++                }
++            }
++
++            pTarget->Release();
++        }
++
++        pStatics->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.EnumTypeMemberSetterUniqueNames) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT SetEnumMember_<#=name#>(
++    ::IInspectable* instance,
++    ::IInspectable* value)
++{
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        std::underlying_type_t<TValue> enumValue = {};
++        hr = TroleBoxer::UnboxValue(value, &enumValue);
++        if (SUCCEEDED(hr))
++        {
++            hr = pInstance->put_<#=name#>(static_cast<TValue>(enumValue));
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.ValueTypeMemberSetterUniqueNames) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT SetValueTypeMember_<#=name#>(
++    ::IInspectable* instance,
++    ::IInspectable* value)
++{
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        TValue valueTypeValue = {};
++        hr = TroleBoxer::UnboxValue(value, &valueTypeValue);
++        if (SUCCEEDED(hr))
++        {
++            hr = pInstance->put_<#=name#>(valueTypeValue);
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.StringSetterUniqueNames) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT SetReferenceTypeStringMember_<#=name#>(
++    ::IInspectable* instance,
++    ::IInspectable* value)
++{
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        HSTRING hstr = nullptr;
++        hr = TroleBoxer::UnboxValue(value, &hstr);
++        if (SUCCEEDED(hr))
++        {
++            hr = pInstance->put_<#=name#>(hstr);
++            WindowsDeleteString(hstr);
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>
++<#  foreach (string name in Model.ReferenceTypeMemberSetterUniqueNamesNoStrings) #>
++<#  { #>
++
++template <typename TDeclaringType, typename TValue>
++HRESULT SetReferenceTypeMember_<#=name#>(
++    ::IInspectable* instance,
++    ::IInspectable* value)
++{
++    TDeclaringType* pInstance = nullptr;
++    HRESULT hr = instance->QueryInterface(IID_PPV_ARGS(&pInstance));
++    if (SUCCEEDED(hr))
++    {
++        TValue* pValue = nullptr;
++        hr = value->QueryInterface(IID_PPV_ARGS(&pValue));
++        if (SUCCEEDED(hr))
++        {
++            hr = pInstance->put_<#=name#>(pValue);
++            pValue->Release();
++        }
++
++        pInstance->Release();
++    }
++
++    return hr;
++}
++<#  } #>

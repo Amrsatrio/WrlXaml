@@ -1,0 +1,143 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
+new file mode 100644
+index 0000000..973a652
+--- /dev/null
++++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
+@@ -0,0 +1,137 @@
++using System;
++using System.Collections.Generic;
++using System.IO;
++using System.Reflection;
++using System.Reflection.Metadata;
++using System.Reflection.PortableExecutable;
++
++namespace Microsoft.Xaml.XamlCompiler.CodeGenerators;
++
++public static class WRLSupport
++{
++    private static readonly Dictionary<Assembly, System.Reflection.Metadata.MetadataReader> _cache = new();
++
++    public static System.Reflection.Metadata.MetadataReader GetMetadataReader(Assembly assembly)
++    {
++        if (!_cache.TryGetValue(assembly, out var reader))
++        {
++            var peReader = new PEReader(File.OpenRead(assembly.Location));
++            reader = peReader.GetMetadataReader();
++            _cache.Add(assembly, reader);
++        }
++        return reader;
++    }
++
++    static string GetTypeName(System.Reflection.Metadata.MetadataReader reader, EntityHandle handle)
++    {
++        return handle.Kind switch
++        {
++            HandleKind.TypeReference => GetTypeRefName(reader, (TypeReferenceHandle) handle),
++            HandleKind.TypeDefinition => GetTypeDefName(reader, (TypeDefinitionHandle) handle),
++            _ => "Unknown"
++        };
++    }
++
++    static string GetTypeRefName(System.Reflection.Metadata.MetadataReader reader, TypeReferenceHandle handle)
++    {
++        var tr = reader.GetTypeReference(handle);
++        return $"{reader.GetString(tr.Namespace)}.{reader.GetString(tr.Name)}";
++    }
++
++    static string GetTypeDefName(System.Reflection.Metadata.MetadataReader reader, TypeDefinitionHandle handle)
++    {
++        var td = reader.GetTypeDefinition(handle);
++        return $"{reader.GetString(td.Namespace)}.{reader.GetString(td.Name)}";
++    }
++
++    static string GetAttributeTypeName(System.Reflection.Metadata.MetadataReader reader, EntityHandle ctorHandle)
++    {
++        if (ctorHandle.Kind == HandleKind.MemberReference)
++        {
++            var mr = reader.GetMemberReference((MemberReferenceHandle) ctorHandle);
++            if (mr.Parent.Kind == HandleKind.TypeReference)
++            {
++                return GetTypeRefName(reader, (TypeReferenceHandle) mr.Parent);
++            }
++            else if (mr.Parent.Kind == HandleKind.TypeDefinition)
++            {
++                return GetTypeDefName(reader, (TypeDefinitionHandle) mr.Parent);
++            }
++        }
++        return "UnknownAttribute";
++    }
++
++    public static InterfaceImplementationHandleCollection GetMetadataInterfaceImplementations(System.Reflection.Metadata.MetadataReader reader, Type classType)
++    {
++        foreach (var typeDefHandle in reader.TypeDefinitions)
++        {
++            var typeDef = reader.GetTypeDefinition(typeDefHandle);
++            var nameStr = reader.GetString(typeDef.Name);
++            var namespaceStr = reader.GetString(typeDef.Namespace);
++            if (nameStr == classType.Name && namespaceStr == classType.Namespace)
++            {
++                return typeDef.GetInterfaceImplementations();
++            }
++        }
++
++        throw new InvalidOperationException($"Not found for {classType.Name}");
++    }
++
++    private static readonly Dictionary<Type, string> _defaultInterfaceNameCache = new();
++
++    public static string GetDefaultInterfaceName(this Type classType)
++    {
++        if (_defaultInterfaceNameCache.TryGetValue(classType, out var defaultInterfaceName))
++        {
++            return defaultInterfaceName;
++        }
++        var reader = GetMetadataReader(classType.Assembly);
++        foreach (var interfaceImplHandle in GetMetadataInterfaceImplementations(reader, classType))
++        {
++            var interfaceImpl = reader.GetInterfaceImplementation(interfaceImplHandle);
++            if (interfaceImpl.Interface.Kind != HandleKind.TypeReference)
++            {
++                continue;
++            }
++
++            foreach (var attrHandle in reader.GetCustomAttributes(interfaceImplHandle))
++            {
++                var attr = reader.GetCustomAttribute(attrHandle);
++                var attrName = GetAttributeTypeName(reader, attr.Constructor);
++                if (attrName == "Windows.Foundation.Metadata.DefaultAttribute")
++                {
++                    var ifaceType = reader.GetTypeReference((TypeReferenceHandle) interfaceImpl.Interface);
++                    return _defaultInterfaceNameCache[classType] = $"{reader.GetString(ifaceType.Namespace)}.{reader.GetString(ifaceType.Name)}";
++                }
++            }
++        }
++
++        return null;
++    }
++
++    private static readonly string[] _indents =
++    {
++        "",
++        "    ",
++        "        ",
++        "            ",
++        "                ",
++        "                    ",
++        "                        ",
++        "                            ",
++    };
++
++    public static string WRL_Indent(this string str, int indentLevel)
++    {
++        var indent = indentLevel < _indents.Length ? _indents[indentLevel] : new string(' ', indentLevel * 4);
++        using var reader = new StringReader(str);
++        using var writer = new StringWriter();
++        string line;
++        while ((line = reader.ReadLine()) != null)
++        {
++            writer.Write(indent);
++            writer.WriteLine(line);
++        }
++        return writer.ToString();
++    }
++}

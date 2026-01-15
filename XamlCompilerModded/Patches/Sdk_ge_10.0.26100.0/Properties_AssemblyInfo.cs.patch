@@ -1,0 +1,10 @@
+diff --git a/Properties/AssemblyInfo.cs b/Properties/AssemblyInfo.cs
+index b601c02..883db73 100644
+--- a/Properties/AssemblyInfo.cs
++++ b/Properties/AssemblyInfo.cs
+@@ -22,4 +22,4 @@ using System.Windows.Markup;
+ [assembly: SecurityPermission(SecurityAction.RequestMinimum, Execution = true)]
+ [assembly: AssemblyVersion("0.0.0.0")]
+ [assembly: TypeForwardedTo(typeof(ValueSerializerAttribute))]
+-[module: RefSafetyRules(11)]
++// [module: RefSafetyRules(11)]

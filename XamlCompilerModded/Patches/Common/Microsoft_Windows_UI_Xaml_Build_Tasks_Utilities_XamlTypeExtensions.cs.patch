@@ -1,0 +1,578 @@
+diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
+index b75b2f0..f4d857e 100644
+--- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
++++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
+@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Markup.Compiler;
+ using Microsoft.UI.Xaml.Markup.Compiler.Core;
+ using Microsoft.Xaml.DirectUI;
+ using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ using Microsoft.Xaml.XamlDom;
+ 
+ namespace Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+@@ -102,7 +103,13 @@ internal static class XamlTypeExtensions
+ 			{
+ 				{
+ 					"Windows.UI.Xaml.Visibility",
+-					new LanguageSpecificString(() => "{0} ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed", () => "{0} ? ::winrt::Windows::UI::Xaml::Visibility::Visible : ::winrt::Windows::UI::Xaml::Visibility::Collapsed", () => "{0} ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed", () => "If({0}, Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)")
++					new LanguageSpecificString(
++						() => "{0} ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed",
++						() => "{0} ? ::winrt::Windows::UI::Xaml::Visibility::Visible : ::winrt::Windows::UI::Xaml::Visibility::Collapsed",
++						() => "{0} ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed",
++						() => "If({0}, Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)",
++						wrl: () => "::ABI::Windows::UI::Xaml::Visibility _inlineConversion_Out = {0} ? ::ABI::Windows::UI::Xaml::Visibility_Visible : ::ABI::Windows::UI::Xaml::Visibility_Collapsed;",
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				},
+ 				{
+ 					"Windows.Foundation.IReference`1<Boolean>",
+@@ -115,10 +122,13 @@ internal static class XamlTypeExtensions
+ 			new Dictionary<string, LanguageSpecificString> { 
+ 			{
+ 				"Windows.UI.Xaml.Visibility",
+-				new LanguageSpecificString(() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed", delegate
+-				{
+-					throw new NotImplementedException("Unexpected System.Nullable<Boolean> to Visibility");
+-				}, () => "({0} ?? false) ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed", () => "If(If({0}, False), Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)")
++				new LanguageSpecificString(
++					() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed",
++					() => throw new NotImplementedException("Unexpected System.Nullable<Boolean> to Visibility"),
++					() => "({0} ?? false) ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed",
++					() => "If(If({0}, False), Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)",
++					wrl: () => throw new NotImplementedException("WRL: Unexpected System.Nullable<Boolean> to Visibility"),
++					wrlOutVar: () => "_inlineConversion_Out")
+ 			} }
+ 		},
+ 		{
+@@ -127,11 +137,23 @@ internal static class XamlTypeExtensions
+ 			{
+ 				{
+ 					typeof(bool).FullName,
+-					new LanguageSpecificString(() => "{0} ? {0}->Value : false", () => "{0} ? {0}.Value() : false", () => "{0} ?? false", () => "If({0}, False)")
++					new LanguageSpecificString(
++						() => "{0} ? {0}->Value : false",
++						() => "{0} ? {0}.Value() : false",
++						() => "{0} ?? false",
++						() => "If({0}, False)",
++						wrl: () => throw new NotImplementedException("WRL: Unexpected IReference<Boolean> to bool"),
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				},
+ 				{
+ 					"Windows.UI.Xaml.Visibility",
+-					new LanguageSpecificString(() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed", () => "{0} && {0}.Value() ? ::winrt::Windows::UI::Xaml::Visibility::Visible : ::winrt::Windows::UI::Xaml::Visibility::Collapsed", () => "({0} ?? false) ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed", () => "If(If({0}, False), Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)")
++					new LanguageSpecificString(
++						() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed",
++						() => "{0} && {0}.Value() ? ::winrt::Windows::UI::Xaml::Visibility::Visible : ::winrt::Windows::UI::Xaml::Visibility::Collapsed",
++						() => "({0} ?? false) ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed",
++						() => "If(If({0}, False), Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)",
++						wrl: () => throw new NotImplementedException("WRL: Unexpected IReference<Boolean> to Visibility"),
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				}
+ 			}
+ 		},
+@@ -141,15 +163,33 @@ internal static class XamlTypeExtensions
+ 			{
+ 				{
+ 					typeof(bool).FullName,
+-					new LanguageSpecificString(() => "{0} == ::Windows::UI::Xaml::Visibility::Visible", () => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible", () => "{0} == global::Windows.UI.Xaml.Visibility.Visible", () => "{0} = Global.Windows.UI.Xaml.Visibility.Visible")
++					new LanguageSpecificString(
++						() => "{0} == ::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == global::Windows.UI.Xaml.Visibility.Visible",
++						() => "{0} = Global.Windows.UI.Xaml.Visibility.Visible",
++						wrl: () => "bool _inlineConversion_Out = ({0} == ::ABI::Windows::UI::Xaml::Visibility_Visible);",
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				},
+ 				{
+ 					"System.Nullable`1<Boolean>",
+-					new LanguageSpecificString(() => "{0} == ::Windows::UI::Xaml::Visibility::Visible", () => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible", () => "{0} == global::Windows.UI.Xaml.Visibility.Visible", () => "{0} = Global.Windows.UI.Xaml.Visibility.Visible")
++					new LanguageSpecificString(
++						() => "{0} == ::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == global::Windows.UI.Xaml.Visibility.Visible",
++						() => "{0} = Global.Windows.UI.Xaml.Visibility.Visible",
++						wrl: () => throw new NotImplementedException("WRL: Unexpected Visibility to Nullable<Boolean>"),
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				},
+ 				{
+ 					"Windows.Foundation.IReference`1<Boolean>",
+-					new LanguageSpecificString(() => "{0} == ::Windows::UI::Xaml::Visibility::Visible", () => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible", () => "{0} == global::Windows.UI.Xaml.Visibility.Visible", () => "{0} = Global.Windows.UI.Xaml.Visibility.Visible")
++					new LanguageSpecificString(
++						() => "{0} == ::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == ::winrt::Windows::UI::Xaml::Visibility::Visible",
++						() => "{0} == global::Windows.UI.Xaml.Visibility.Visible",
++						() => "{0} = Global.Windows.UI.Xaml.Visibility.Visible",
++						wrl: () => throw new NotImplementedException("WRL: Unexpected Visibility to IReference<Boolean>"),
++						wrlOutVar: () => "_inlineConversion_Out")
+ 				}
+ 			}
+ 		}
+@@ -432,13 +472,29 @@ internal static class XamlTypeExtensions
+ 					{
+ 						cppWinRTCast = source.CppWinRTCast(xamlType, "{0}");
+ 					}
+-					languageSpecificString2 = new LanguageSpecificString(() => "{0}", () => cppWinRTCast, () => "{0}", () => "{0}");
++					languageSpecificString2 = new LanguageSpecificString(
++						() => "{0}",
++						() => cppWinRTCast,
++						() => "{0}",
++						() => "{0}",
++						wrl: () =>
++						{
++							throw new NotImplementedException($"Boxed type expression not supported for WRL. Source: {source.UnderlyingType.FullName} Target: {target.UnderlyingType.FullName}");
++						});
+ 				}
+ 				string cppBoxedValue = $"ref new ::Platform::Box<{arg}>({languageSpecificString2.CppCXName()})";
+ 				string cSharpBoxedValue = $"new global::System.Nullable<{arg2}>({languageSpecificString2.CSharpName()})";
+ 				string vbBoxedValue = $"New Global.System.Nullable (Of {arg3})({languageSpecificString2.VBName()})";
+ 				string cppWinRTBoxedValue = $"winrt::box_value({languageSpecificString2.CppWinRTName()}).as<{target.CppWinRTName()}>()";
+-				languageSpecificString = new LanguageSpecificString(() => cppBoxedValue, () => cppWinRTBoxedValue, () => cSharpBoxedValue, () => vbBoxedValue);
++				languageSpecificString = new LanguageSpecificString(
++					() => cppBoxedValue,
++					() => cppWinRTBoxedValue,
++					() => cSharpBoxedValue,
++					() => vbBoxedValue,
++					wrl: () =>
++					{
++						throw new NotImplementedException($"Expression not supported for WRL. Source: {source.UnderlyingType.FullName} Target: {target.UnderlyingType.FullName}");
++					});
+ 			}
+ 			if (languageSpecificString == null)
+ 			{
+@@ -528,7 +584,24 @@ internal static class XamlTypeExtensions
+ 			string targeVbName = target.VBName();
+ 			string sourceVbCastName = source.GetVBCastName(target.UnderlyingType);
+ 			string cppWinRTCast = source.CppWinRTCast(target, "{0}");
+-			languageSpecificString = new LanguageSpecificString(() => $"safe_cast<{targetCppName}>({{0}})", () => cppWinRTCast, () => $"({targetCSharpName}){{0}}", () => string.Format("{1}({{0}}, {0})", targeVbName, sourceVbCastName));
++			languageSpecificString = new LanguageSpecificString(
++				() => $"safe_cast<{targetCppName}>({{0}})",
++				() => cppWinRTCast,
++				() => $"({targetCSharpName}){{0}}",
++				() => string.Format("{1}({{0}}, {0})", targeVbName, sourceVbCastName),
++				wrl: () =>
++				{
++					var wrlLSS = new LanguageSpecificString(
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						wrl: () => $"{source.WRLNameNonSmartVar()} _inlineConversion_In = ^0^;",
++						wrlOutVar: () => "_inlineConversion_In"
++					);
++					return source.WRLCast(target, wrlLSS, "_inlineConversion_Out").Replace("{", "{{").Replace("}", "}}").Replace("^0^", "{0}");
++				},
++				wrlOutVar: () => "_inlineConversion_Out");
+ 		}
+ 		if (source.CanBoxTo(target) || InlineConversionsCache.ContainsKey(text))
+ 		{
+@@ -553,7 +626,23 @@ internal static class XamlTypeExtensions
+ 	public static LanguageSpecificString GetInlineConversionExpression(this XamlType source, XamlType target, LanguageSpecificString memberExpression)
+ 	{
+ 		LanguageSpecificString expressions = source.GetInlineConversionFormats(target);
+-		return new LanguageSpecificString(() => (!(expressions != null)) ? ("safe_cast<" + target.CppCXName() + ">(" + memberExpression.CppCXName() + ")") : string.Format(expressions.CppCXName(), memberExpression.CppCXName()), () => (!(expressions != null)) ? source.CppWinRTCast(target, memberExpression.CppWinRTName()) : string.Format(expressions.CppWinRTName(), memberExpression.CppWinRTName()), () => (!(expressions != null)) ? ("(" + target.CSharpName() + ")" + memberExpression.CSharpName()) : string.Format(expressions.CSharpName(), memberExpression.CSharpName()), () => (!(expressions != null)) ? (source.GetVBCastName(target.UnderlyingType) + "(" + memberExpression.VBName() + ", " + target.VBName() + ")") : string.Format(expressions.VBName(), memberExpression.VBName()));
++		return new LanguageSpecificString(
++			() => (!(expressions != null)) ? ("safe_cast<" + target.CppCXName() + ">(" + memberExpression.CppCXName() + ")") : string.Format(expressions.CppCXName(), memberExpression.CppCXName()),
++			() => (!(expressions != null)) ? source.CppWinRTCast(target, memberExpression.CppWinRTName()) : string.Format(expressions.CppWinRTName(), memberExpression.CppWinRTName()),
++			() => (!(expressions != null)) ? ("(" + target.CSharpName() + ")" + memberExpression.CSharpName()) : string.Format(expressions.CSharpName(), memberExpression.CSharpName()),
++			() => (!(expressions != null)) ? (source.GetVBCastName(target.UnderlyingType) + "(" + memberExpression.VBName() + ", " + target.VBName() + ")") : string.Format(expressions.VBName(), memberExpression.VBName()),
++			wrl: () =>
++			{
++				if (expressions != null)
++				{
++					return string.Format(expressions.WRLName(), memberExpression.WRLName()); // @Note: We're inline converting--memberExpression is ALWAYS a symbol name not statements
++				}
++				else
++				{
++					return source.WRLCast(target, memberExpression, "_inlineConversion_Out");
++				}
++			},
++			wrlOutVar: () => "_inlineConversion_Out");
+ 	}
+ 
+ 	internal static LanguageSpecificString GetInlineConversionFormats(this XamlType source, XamlType target)
+@@ -680,25 +769,299 @@ internal static class XamlTypeExtensions
+ 			throw new NotImplementedException("Couldn't convert boxed type " + xamlType.UnderlyingType.FullName + " to " + type.UnderlyingType.FullName);
+ 		}
+ 		string cppWinRTValue = (isLiteral ? ("L" + valueName.CppWinRTName()) : valueName.CppWinRTName());
+-		if (!type.HasCreateFromStringMethod())
++		if (type.HasCreateFromStringMethod())
+ 		{
+-			return new LanguageSpecificString(() => "(" + type.CppCXName() + ") ::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(" + type.CppCXName(IncludeHatIfApplicable: false) + "::typeid, " + valueName.CppCXName() + ")", () => (!type.NeedsBoxUnbox()) ? type.SchemaContext.GetXamlType(typeof(object)).CppWinRTCast(type, "::winrt::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(::winrt::xaml_typename<" + type.CppWinRTName() + ">(), ::winrt::box_value(::winrt::hstring(" + cppWinRTValue + ")))") : ("::winrt::unbox_value<" + type.CppWinRTName() + ">(::winrt::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(::winrt::xaml_typename<" + type.CppWinRTName() + ">(), ::winrt::box_value(::winrt::hstring(" + cppWinRTValue + "))))"), () => string.Format("({0}) global::Windows.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof({0}), {1})", type.CSharpName(), valueName.CSharpName()), () => string.Format("DirectCast(Global.Windows.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(GetType({0}), {1}), {0})", type.VBName(), valueName.VBName()));
++			CreateFromStringMethod createFromString = type.GetCreateFromStringMethod();
++			var pasteConditionalLiteral = () =>
++			{
++				if (isLiteral)
++				{
++					return
++$$"""
++HSTRING_HEADER strValueNameHeader;
++HSTRING strValueName;
++hrT = WindowsCreateStringReference({{valueName.WRLName()}}, ARRAYSIZE({{valueName.WRLName()}}) - 1, &strValueNameHeader, &strValueName);
++""";
++				}
++				else
++				{
++					// valueName MUST be a HSTRING variable name
++					return
++$$"""
++HSTRING strValueName = {{valueName.WRLName()}};
++""";
++				}
++			};
++			if (createFromString.MethodInfo.ReturnType.CanAssignDirectlyTo(type.UnderlyingType))
++			{
++				return new LanguageSpecificString(
++					() => $"{createFromString.ResolvedName.CppCXName()}({valueName.CppCXName()})",
++					() => $"{createFromString.ResolvedName.CppWinRTName()}({valueName.CppWinRTName()})",
++					() => $"{createFromString.ResolvedName.CSharpName()}({valueName.CSharpName()})",
++					() => $"{createFromString.ResolvedName.VBName()}({valueName.VBName()})",
++					wrl: () =>
++					{
++						const string n_outputSmart = "_XamlTypeExtensions_GetStringToThing_Out_Smart";
++						const string n_output = "_XamlTypeExtensions_GetStringToThing_Out";
++						return
++$$"""
++// BEGIN XamlTypeExtensions.GetStringToThing - Direct CreateFromString branch
++{{type.WRLDeclareSmartVar(n_outputSmart)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{createFromString.DeclaringType.WRLNameStaticInterfaceSpecific(createFromString.MethodInfo.Name)}}> memberDeclaringStatics;
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{createFromString.DeclaringType.ToRuntimeClassNameConstant()}}).Get(),
++        &memberDeclaringStatics);
++    if (SUCCEEDED(hrT))
++    {
++        {{pasteConditionalLiteral().WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            hrT = memberDeclaringStatics->{{createFromString.MethodInfo.Name}}(strValueName, {{type.WRLOutParam(n_outputSmart)}});
++        }
++    }
++}
++{{type.WRLNameNonSmartVar()}} {{n_output}} = {{type.WRLGetSmartVar(n_outputSmart)}};
++// END XamlTypeExtensions.GetStringToThing - Direct CreateFromString branch
++""";
++					},
++					wrlOutVar: () => "_XamlTypeExtensions_GetStringToThing_Out");
++			}
++			else
++			{
++				return new LanguageSpecificString(
++					() => $"({type.CppCXName()}){createFromString.ResolvedName.CppCXName()}({valueName.CppCXName()})",
++					() => "::winrt::unbox_value<" + type.CppWinRTName() + ">(" + createFromString.ResolvedName.CppWinRTName() + "(" + cppWinRTValue + "))",
++					() => $"({type.CSharpName()}){createFromString.ResolvedName.CSharpName()}({valueName.CSharpName()})",
++					() => string.Format("DirectCast({1}({2}), {0})", type.VBName(), createFromString.ResolvedName.VBName(), valueName.VBName()),
++					wrl: () =>
++					{
++						const string n_outputSmart = "_XamlTypeExtensions_GetStringToThing_Out_Smart";
++						const string n_output = "_XamlTypeExtensions_GetStringToThing_Out";
++						const string n_createFromStringResult = "spCreateFromStringResult";
++						XamlType retType = type.SchemaContext.GetXamlType(createFromString.MethodInfo.ReturnType);
++						return
++$$"""
++// BEGIN XamlTypeExtensions.GetStringToThing - Indirect CreateFromString branch
++{{type.WRLDeclareSmartVar(n_outputSmart)}}
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<{{createFromString.DeclaringType.WRLNameStaticInterfaceSpecific(createFromString.MethodInfo.Name)}}> memberDeclaringStatics;
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference({{createFromString.DeclaringType.ToRuntimeClassNameConstant()}}).Get(),
++        &memberDeclaringStatics);
++    if (SUCCEEDED(hrT))
++    {
++        {{pasteConditionalLiteral().WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++            {{retType.WRLDeclareSmartVar(n_createFromStringResult)}}
++            hrT = memberDeclaringStatics->{{createFromString.MethodInfo.Name}}(strValueName, {{retType.WRLOutParam(n_createFromStringResult)}});
++            if (SUCCEEDED(hrT))
++            {
++                hrT = TroleBoxer::UnboxValue({{retType.WRLGetSmartVar(n_createFromStringResult)}}, {{type.WRLOutParam(n_outputSmart)}});
++            }
++        }
++    }
++}
++{{type.WRLNameNonSmartVar()}} {{n_output}} = {{type.WRLGetSmartVar(n_outputSmart)}};
++// END XamlTypeExtensions.GetStringToThing - Indirect CreateFromString branch
++""";
++					},
++					wrlOutVar: () => "_XamlTypeExtensions_GetStringToThing_Out");
++			}
+ 		}
+-		CreateFromStringMethod createFromString = type.GetCreateFromStringMethod();
+-		if (createFromString.MethodInfo.ReturnType.CanAssignDirectlyTo(type.UnderlyingType))
+-		{
+-			return new LanguageSpecificString(() => $"{createFromString.ResolvedName.CppCXName()}({valueName.CppCXName()})", () => $"{createFromString.ResolvedName.CppWinRTName()}({valueName.CppWinRTName()})", () => $"{createFromString.ResolvedName.CSharpName()}({valueName.CSharpName()})", () => $"{createFromString.ResolvedName.VBName()}({valueName.VBName()})");
++		else
++		{
++			return new LanguageSpecificString(
++				() => "(" + type.CppCXName() + ") ::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(" + type.CppCXName(IncludeHatIfApplicable: false) + "::typeid, " + valueName.CppCXName() + ")",
++				() => (type.NeedsBoxUnbox()) ?
++					  ("::winrt::unbox_value<" + type.CppWinRTName() + ">(::winrt::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(::winrt::xaml_typename<" + type.CppWinRTName() + ">(), ::winrt::box_value(::winrt::hstring(" + cppWinRTValue + "))))")
++					: type.SchemaContext.GetXamlType(typeof(object)).CppWinRTCast(type, "::winrt::Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(::winrt::xaml_typename<" + type.CppWinRTName() + ">(), ::winrt::box_value(::winrt::hstring(" + cppWinRTValue + ")))"),
++				() => string.Format("({0}) global::Windows.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof({0}), {1})", type.CSharpName(), valueName.CSharpName()),
++				() => string.Format("DirectCast(Global.Windows.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(GetType({0}), {1}), {0})", type.VBName(), valueName.VBName()),
++				wrl: () =>
++				{
++					const string n_outputSmart = "_XamlTypeExtensions_GetStringToThing_Out_Smart";
++					const string n_output = "_XamlTypeExtensions_GetStringToThing_Out";
++					const string n_xamlBindingHelperStatics = "_XamlTypeExtensions_GetStringToThing_spXamlBindingHelperStatics";
++					const string n_spConvertValueResult = "_XamlTypeExtensions_GetStringToThing_spConvertValueResult";
++					const string n_pConvertValueResult = "_XamlTypeExtensions_GetStringToThing_pConvertValueResult";
++
++					var pasteConditionalLiteral = () =>
++					{
++						if (isLiteral)
++						{
++							return
++$$"""
++HSTRING_HEADER strValueNameHeader;
++HSTRING strValueName;
++hrT = WindowsCreateStringReference({{valueName.WRLName()}}, ARRAYSIZE({{valueName.WRLName()}}) - 1, &strValueNameHeader, &strValueName);
++""";
++						}
++						else
++						{
++							// valueName MUST be a HSTRING variable name
++							return
++$$"""
++HSTRING strValueName = {{valueName.WRLName()}};
++""";
++						}
++					};
++
++					var lss = new LanguageSpecificString(
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						() => throw new NotImplementedException(),
++						wrl: () =>
++						{
++					return
++$$"""
++::Microsoft::WRL::ComPtr<::IInspectable> {{n_spConvertValueResult}};
++if (SUCCEEDED(hrT))
++{
++    ::Microsoft::WRL::ComPtr<::ABI::Windows::UI::Xaml::Markup::IXamlBindingHelperStatics> {{n_xamlBindingHelperStatics}};
++    hrT = ::ABI::Windows::Foundation::GetActivationFactory(
++        ::Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_UI_Xaml_Markup_XamlBindingHelper).Get(),
++        &{{n_xamlBindingHelperStatics}});
++    if (SUCCEEDED(hrT))
++    {
++{{type.WRLXamlTypeName(out var xamlTypeNameInitList).WRL_Indent(2)}}
++        if (SUCCEEDED(hrT))
++        {
++{{pasteConditionalLiteral().WRL_Indent(3)}}
++            if (SUCCEEDED(hrT))
++            {
++                ::Microsoft::WRL::ComPtr<::IInspectable> spValueName;
++                hrT = TroleBoxer::BoxValue(strValueName, &spValueName);
++                if (SUCCEEDED(hrT))
++                {
++                    hrT = {{n_xamlBindingHelperStatics}}->ConvertValue(
++                        {{xamlTypeNameInitList}},
++                        spValueName.Get(), &{{n_spConvertValueResult}});
++                }
++            }
++        }
++    }
++}
++::IInspectable* {{n_pConvertValueResult}} = {{n_spConvertValueResult}}.Get();
++""";
++						},
++						wrlOutVar: () => n_pConvertValueResult);
++
++					if (type.NeedsBoxUnbox())
++					{
++						return
++$$"""
++// BEGIN XamlTypeExtensions.GetStringToThing - XamlBindingHelper.ConvertValue branch
++{{type.WRLDeclareSmartVar(n_outputSmart)}}
++if (SUCCEEDED(hrT))
++{
++{{lss.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = TroleBoxer::UnboxValue({{lss.WRLOutVarName()}}, {{type.WRLOutParam(n_outputSmart)}});
++    }
++}
++{{type.WRLNameNonSmartVar()}} {{n_output}} = {{type.WRLGetSmartVar(n_outputSmart)}};
++// END XamlTypeExtensions.GetStringToThing - XamlBindingHelper.ConvertValue branch
++""";
++					}
++					else
++					{
++						return
++$$"""
++// BEGIN XamlTypeExtensions.GetStringToThing - XamlBindingHelper.ConvertValue branch
++{{type.SchemaContext.GetXamlType(typeof(object)).WRLCast(type, lss, n_output)}}
++// END XamlTypeExtensions.GetStringToThing - XamlBindingHelper.ConvertValue branch
++"""; // WRLCast will define n_output for us
++					}
++				},
++				wrlOutVar: () => "_XamlTypeExtensions_GetStringToThing_Out");
+ 		}
+-		return new LanguageSpecificString(() => $"({type.CppCXName()}){createFromString.ResolvedName.CppCXName()}({valueName.CppCXName()})", () => "::winrt::unbox_value<" + type.CppWinRTName() + ">(" + createFromString.ResolvedName.CppWinRTName() + "(" + cppWinRTValue + "))", () => $"({type.CSharpName()}){createFromString.ResolvedName.CSharpName()}({valueName.CSharpName()})", () => string.Format("DirectCast({1}({2}), {0})", type.VBName(), createFromString.ResolvedName.VBName(), valueName.VBName()));
+ 	}
+ 
+ 	public static LanguageSpecificString ToStringWithNullCheckExpression(this XamlType type, LanguageSpecificString expression)
+ 	{
+ 		if (type.UnderlyingType.IsValueType)
+ 		{
+-			return new LanguageSpecificString(() => expression.CppCXName() + ".ToString()", () => "::winrt::to_hstring(" + expression.CppWinRTName() + ")", () => expression.CSharpName() + ".ToString()", () => expression.VBName() + ".ToString()");
++			return new LanguageSpecificString(
++				() => expression.CppCXName() + ".ToString()",
++				() => "::winrt::to_hstring(" + expression.CppWinRTName() + ")",
++				() => expression.CSharpName() + ".ToString()",
++				() => expression.VBName() + ".ToString()",
++				wrl: () =>
++				{
++					const string n_tempBSTR = "_XamlTypeExtensions_ToStringWithNullCheckExpression_TempBSTR";
++					const string n_tempHSTRH = "_XamlTypeExtensions_ToStringWithNullCheckExpression_TempHSTRH";
++					const string n_output = "_XamlTypeExtensions_ToStringWithNullCheckExpression_Out";
++					return
++$$"""
++// BEGIN XamlTypeExtensions.ToStringWithNullCheckExpression - type.UnderlyingType.IsValueType branch
++BSTR {{n_tempBSTR}} = nullptr;
++{{GenerateCleaner("BSTR", n_tempBSTR, "SysFreeString")}}
++HSTRING_HEADER {{n_tempHSTRH}};
++HSTRING {{n_output}} = nullptr;
++if (SUCCEEDED(hrT))
++{
++{{expression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++    }
++}
++if (SUCCEEDED(hrT))
++{
++    hrT = WindowsCreateStringReference({{n_tempBSTR}}, SysStringLen({{n_tempBSTR}}), &{{n_tempHSTRH}}, &{{n_output}});
++}
++// END XamlTypeExtensions.ToStringWithNullCheckExpression - type.UnderlyingType.IsValueType branch
++""";
++				},
++				wrlOutVar: () => "_XamlTypeExtensions_ToStringWithNullCheckExpression_Out");
++		}
++		else
++		{
++			return new LanguageSpecificString(
++				() => expression.CppCXName() + " != nullptr ? " + expression.CppCXName() + "->ToString() : nullptr",
++				() => "::winrt::to_hstring(" + expression.CppWinRTName() + ")",
++				() => expression.CSharpName() + " != null ? " + expression.CSharpName() + ".ToString() : null",
++				() => "If(" + expression.VBName() + " IsNot Nothing, " + expression.VBName() + ".ToString(), Nothing)",
++				wrl: () =>
++				{
++					const string n_tempBSTR = "_XamlTypeExtensions_ToStringWithNullCheckExpression_TempBSTR";
++					const string n_tempHSTRH = "_XamlTypeExtensions_ToStringWithNullCheckExpression_TempHSTRH";
++					const string n_output = "_XamlTypeExtensions_ToStringWithNullCheckExpression_Out";
++					return
++$$"""
++// BEGIN XamlTypeExtensions.ToStringWithNullCheckExpression - !type.UnderlyingType.IsValueType branch
++BSTR {{n_tempBSTR}} = nullptr;
++{{GenerateCleaner("BSTR", n_tempBSTR, "SysFreeString")}}
++HSTRING_HEADER {{n_tempHSTRH}};
++HSTRING {{n_output}} = nullptr;
++if (SUCCEEDED(hrT))
++{
++{{expression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++    }
++}
++if (SUCCEEDED(hrT))
++{
++    hrT = WindowsCreateStringReference({{n_tempBSTR}}, SysStringLen({{n_tempBSTR}}), &{{n_tempHSTRH}}, &{{n_output}});
++}
++// END XamlTypeExtensions.ToStringWithNullCheckExpression - !type.UnderlyingType.IsValueType branch
++""";
++				},
++				wrlOutVar: () => "_XamlTypeExtensions_ToStringWithNullCheckExpression_Out");
+ 		}
+-		return new LanguageSpecificString(() => expression.CppCXName() + " != nullptr ? " + expression.CppCXName() + "->ToString() : nullptr", () => "::winrt::to_hstring(" + expression.CppWinRTName() + ")", () => expression.CSharpName() + " != null ? " + expression.CSharpName() + ".ToString() : null", () => "If(" + expression.VBName() + " IsNot Nothing, " + expression.VBName() + ".ToString(), Nothing)");
++	}
++
++	public static string GenerateCleaner(string typeName, string varName, string cleanFunc)
++	{
++		return $$"""struct _Cleaner_{{varName}} { {{typeName}}& _{{varName}}; ~_Cleaner_{{varName}}() { if (_{{varName}}) { {{cleanFunc}}(_{{varName}}); _{{varName}} = nullptr; } } } cleaner_{{varName}}{ {{varName}} };""";
+ 	}
+ 
+ 	public static bool NeedsBoxUnbox(this XamlType instance)
+@@ -736,6 +1099,77 @@ internal static class XamlTypeExtensions
+ 		return type.CppWinRTName();
+ 	}
+ 
++	public static string WRLCast(this XamlType source, XamlType target, ICodeGenOutput expression, string outVarName)
++	{
++		string n_temp = outVarName + "_Temp";
++
++		if (source.UnderlyingType.IsPrimitive && target.UnderlyingType.IsPrimitive)
++		{
++			// throw new NotImplementedException("WRLCast not implemented for primitive types " + source.UnderlyingType.FullName + " to " + target.UnderlyingType.FullName);
++			// return "static_cast<" + target.CppWinRTName() + ">(" + expression + ");\nhrT = S_OK;";
++return
++$$"""
++// BEGIN XamlTypeExtensions.WRLCast from {{source.UnderlyingType.FullName}} to {{target.UnderlyingType.FullName}} - Primitive branch
++{{target.WRLDeclareSmartVar(n_temp, "__WRL_NOINIT")}}
++if (SUCCEEDED(hrT))
++{
++{{expression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        {{target.WRLGetSmartVar(n_temp)}} = static_cast<{{target.WRLNameNonSmartVar()}}>({{expression.WRLOutVarName()}});
++    }
++}
++{{target.WRLNameNonSmartVar()}} {{outVarName}} = {{target.WRLGetSmartVar(n_temp)}};
++// END XamlTypeExtensions.WRLCast from {{source.UnderlyingType.FullName}} to {{target.UnderlyingType.FullName}} - Primitive branch
++""";
++		}
++		if (target.IsString() && !source.IsString())
++		{
++			const string n_tempBSTR = "_XamlTypeExtensions_WRLCast_TempBSTR";
++			const string n_tempHSTRH = "_XamlTypeExtensions_WRLCast_TempHSTRH";
++			return
++$$"""
++// BEGIN XamlTypeExtensions.ToStringWithNullCheckExpression - To string branch
++BSTR {{n_tempBSTR}} = nullptr;
++{{GenerateCleaner("BSTR", n_tempBSTR, "SysFreeString")}}
++HSTRING_HEADER {{n_tempHSTRH}};
++HSTRING {{outVarName}} = nullptr;
++if (SUCCEEDED(hrT))
++{
++{{expression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++    }
++}
++if (SUCCEEDED(hrT))
++{
++    hrT = WindowsCreateStringReference({{n_tempBSTR}}, SysStringLen({{n_tempBSTR}}), &{{n_tempHSTRH}}, &{{outVarName}});
++}
++// END XamlTypeExtensions.ToStringWithNullCheckExpression - To string branch
++""";
++		}
++		if (!source.UnderlyingType.IsPrimitive && !target.UnderlyingType.IsPrimitive)
++		{
++			return
++$$"""
++// BEGIN XamlTypeExtensions.WRLCast from {{source.UnderlyingType.FullName}} to {{target.UnderlyingType.FullName}} - QueryInterface branch
++{{target.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{expression.WRLName().WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = {{expression.WRLOutVarName()}}->QueryInterface(IID_PPV_ARGS(&{{n_temp}}));
++    }
++}
++{{target.WRLNameNonSmartVar()}} {{outVarName}} = {{target.WRLGetSmartVar(n_temp)}};
++// END XamlTypeExtensions.WRLCast from {{source.UnderlyingType.FullName}} to {{target.UnderlyingType.FullName}} - QueryInterface branch
++""";
++		}
++		throw new NotImplementedException("WRLCast not implemented for " + source.UnderlyingType.FullName + " to " + target.UnderlyingType.FullName);
++	}
++
+ 	public static bool HasFullXamlMetadataProviderAttribute(this Type type)
+ 	{
+ 		return Microsoft.Xaml.DirectUI.ReflectionHelper.GetCustomAttributeData(type, inherit: false, "Windows.UI.Xaml.Markup.FullXamlMetadataProviderAttribute").Any();

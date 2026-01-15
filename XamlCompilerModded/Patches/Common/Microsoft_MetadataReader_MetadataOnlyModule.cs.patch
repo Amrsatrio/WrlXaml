@@ -1,0 +1,13 @@
+diff --git a/Microsoft/MetadataReader/MetadataOnlyModule.cs b/Microsoft/MetadataReader/MetadataOnlyModule.cs
+index 16adc2e..8fc09b2 100644
+--- a/Microsoft/MetadataReader/MetadataOnlyModule.cs
++++ b/Microsoft/MetadataReader/MetadataOnlyModule.cs
+@@ -1843,7 +1843,7 @@ internal class MetadataOnlyModule : Module, IModule2, IDisposable
+ 	public int RowCount(MetadataTable metadataTableIndex)
+ 	{
+ 		IMetadataTables metadataTables = (IMetadataTables)RawImport;
+-		metadataTables.GetTableInfo(metadataTableIndex, out var countByteRows, out var countRows, out countByteRows, out countByteRows, out var _);
++		metadataTables.GetTableInfo(metadataTableIndex, out var countByteRows, out var countRows, out _, out _, out var _);
+ 		return countRows;
+ 	}
+ 

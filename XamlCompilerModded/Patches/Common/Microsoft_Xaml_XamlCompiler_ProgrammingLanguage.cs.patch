@@ -1,0 +1,12 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/ProgrammingLanguage.cs b/Microsoft/Xaml/XamlCompiler/ProgrammingLanguage.cs
+index 60e4252..b17d96e 100644
+--- a/Microsoft/Xaml/XamlCompiler/ProgrammingLanguage.cs
++++ b/Microsoft/Xaml/XamlCompiler/ProgrammingLanguage.cs
+@@ -10,5 +10,7 @@ internal static class ProgrammingLanguage
+ 
+ 	public const string CppWinRT = "CppWinRT";
+ 
++	public const string WRL = "WRL";
++
+ 	public const string IdlWinRT = "WinRT";
+ }

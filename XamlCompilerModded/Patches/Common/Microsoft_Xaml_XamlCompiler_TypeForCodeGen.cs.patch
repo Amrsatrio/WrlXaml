@@ -1,0 +1,82 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/TypeForCodeGen.cs b/Microsoft/Xaml/XamlCompiler/TypeForCodeGen.cs
+index 2d4b4b0..3544181 100644
+--- a/Microsoft/Xaml/XamlCompiler/TypeForCodeGen.cs
++++ b/Microsoft/Xaml/XamlCompiler/TypeForCodeGen.cs
+@@ -17,6 +17,9 @@ internal class TypeForCodeGen
+ 	private string _memberFriendlyName;
+ 
+ 	private LanguageSpecificString _languageSpecificString;
++	private string _defaultInterface;
++	private string _factoryForComposing;
++	private bool _isActivatable;
+ 
+ 	public Type UnderlyingType => _xamlType.UnderlyingType;
+ 
+@@ -50,12 +53,66 @@ internal class TypeForCodeGen
+ 		{
+ 			if (_languageSpecificString == null)
+ 			{
+-				_languageSpecificString = new LanguageSpecificString(() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "C++", globalized: true), () => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "CppWinRT", globalized: true), () => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "C#", globalized: true), () => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "VB", globalized: true));
++				_languageSpecificString = new LanguageSpecificString(
++					() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "C++", globalized: true),
++					() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "CppWinRT", globalized: true),
++					() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "C#", globalized: true),
++					() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, "VB", globalized: true),
++					() => XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, ProgrammingLanguage.WRL, globalized: true));
+ 			}
+ 			return _languageSpecificString;
+ 		}
+ 	}
+ 
++	public string FullDefaultInterfaceName
++	{
++		get
++		{
++			if (_defaultInterface == null)
++			{
++				if (_xamlType.BaseType?.UnderlyingType.FullName == "System.MulticastDelegate")
++				{
++					var nonInterfaceName = XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType, ProgrammingLanguage.WRL, globalized: true);
++					// Inject "I" after the last :: before < or [ (if any) to form the interface name
++					int genericOrArrayStart = nonInterfaceName.IndexOfAny(new[] { '<', '[' });
++					int lastColon = nonInterfaceName.LastIndexOf("::", (genericOrArrayStart == -1) ? nonInterfaceName.Length - 1 : genericOrArrayStart - 1, StringComparison.Ordinal);
++					nonInterfaceName = nonInterfaceName.Insert(lastColon + 2, "I");
++					_defaultInterface = nonInterfaceName;
++				}
++				else
++				{
++					_defaultInterface = XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType.GetDefaultInterfaceType(), ProgrammingLanguage.WRL, globalized: true);
++				}
++			}
++			return _defaultInterface;
++		}
++	}
++
++	public string FullInterfaceNameSpecific(string methodName, bool @static = false)
++	{
++		return XamlSchemaCodeInfo.GetFullGenericNestedName(@static ? _xamlType.UnderlyingType.GetStaticDeclaringInterfaceType(methodName) : _xamlType.UnderlyingType.GetDeclaringInterfaceType(methodName), ProgrammingLanguage.WRL, globalized: true);
++	}
++
++	public string FullFactoryInterfaceForComposingName
++	{
++		get
++		{
++			if (_factoryForComposing == null)
++			{
++				_factoryForComposing = XamlSchemaCodeInfo.GetFullGenericNestedName(_xamlType.UnderlyingType.GetFactoryTypeForComposing(), ProgrammingLanguage.WRL, globalized: true);
++			}
++			return _factoryForComposing;
++		}
++	}
++
++	public bool IsActivatable
++	{
++		get
++		{
++			return _xamlType.UnderlyingType.IsActivatable();
++		}
++	}
++
+ 	public string MemberFriendlyName
+ 	{
+ 		get

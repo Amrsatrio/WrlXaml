@@ -1,0 +1,16 @@
+diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
+index 9b7f933..262a04b 100644
+--- a/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
++++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
+@@ -446,6 +446,11 @@ internal class CompileXamlInternal
+ 
+ 	public bool DoExecute()
+ 	{
++		// @REMOVEME check for debugger
++		/*if (!System.Diagnostics.Debugger.IsAttached)
++		{
++			System.Diagnostics.Debugger.Launch();
++		}*/
+ 		bool flag = true;
+ 		bool flag2 = false;
+ 		PerformanceUtility.Initialize(Log);

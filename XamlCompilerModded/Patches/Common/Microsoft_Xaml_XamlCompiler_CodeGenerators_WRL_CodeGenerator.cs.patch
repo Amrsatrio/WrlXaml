@@ -1,0 +1,131 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
+new file mode 100644
+index 0000000..8bd61e0
+--- /dev/null
++++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
+@@ -0,0 +1,125 @@
++using System;
++using System.Collections.Generic;
++using System.Linq;
++using System.Xaml;
++using Microsoft.UI.Xaml.Markup.Compiler;
++using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.DirectUI;
++
++namespace Microsoft.Xaml.XamlCompiler.CodeGenerators;
++
++internal class WRL_CodeGenerator<T> : NativeCodeGenerator<T>
++{
++	public override string ToStringWithCulture(ICodeGenOutput codegenOutput)
++	{
++		return codegenOutput.WRLName();
++	}
++
++	public override string ToStringWithCulture(XamlType type)
++	{
++		throw new NotSupportedException("Please specify which kind of representation. Tried to output " + type.CppWinRTName());
++	}
++
++	public static string Projection(string typeName)
++	{
++		string text = Globalize(typeName);
++		if (!text.StartsWith("::ABI"))
++		{
++			text = "::ABI" + text;
++			text = text.Replace("<::", "<::ABI::");
++			return text.Replace("ABI::ABI", "ABI");
++		}
++		throw new ArgumentException("Name should contain ::ABI prefix");
++	}
++
++	public static string ToInterface(string fullName)
++	{
++		return Projection(fullName).ToInterface();
++	}
++
++	protected string GetBindingTrackingClassName(BindUniverse bindUniverse, XamlClassCodeInfo codeInfo)
++	{
++		return Colonize(bindUniverse.NeedsCppBindingTrackingClass ?
++			bindUniverse.BindingsTrackingClassName :
++			Colonize($"{ProjectInfo.RootNamespace}::XamlBindingTrackingBase"));
++	}
++
++	public IEnumerable<string> GetCacheDeclarations(BindUniverse bindUniverse)
++	{
++		foreach (var step in bindUniverse.BindPathSteps.Values.Where((BindPathStep step) => step.IsIncludedInUpdate && step.NeedsUpdateChildListeners))
++		{
++			if (step.ImplementsINPC && step.RequiresChildNotification)
++			{
++				if (step is RootStep)
++				{
++					yield return $"::Microsoft::WRL::WeakRef cachePC_{step.CodeName}; // {Projection(DUI.NamespaceWindowsUIXamlData)}::INotifyPropertyChanged";
++				}
++				else
++				{
++					yield return $"::Microsoft::WRL::ComPtr<{Projection(DUI.NamespaceWindowsUIXamlData)}::INotifyPropertyChanged> cachePC_{step.CodeName};";
++				}
++			}
++			if (step.ImplementsINDEI && Features.InputValidation.ExistsInVersion(base.ProjectInfo.TargetPlatformMinVersion))
++			{
++				yield return $"::Microsoft::WRL::ComPtr<{Projection(DUI.NamespaceWindowsUIXamlData)}::INotifyDataErrorInfo> cacheEC_{step.CodeName};";
++			}
++			if (step.ImplementsIObservableVector && step.RequiresChildNotification)
++			{
++				yield return $"::Microsoft::WRL::ComPtr<{step.ValueType.WRLName()}> cacheVC_{step.CodeName};";
++			}
++			if (step.ImplementsIObservableMap && step.RequiresChildNotification)
++			{
++				yield return $"::Microsoft::WRL::ComPtr<{step.ValueType.WRLName()}> cacheMC_{step.CodeName};";
++			}
++			else if (step.ImplementsINCC)
++			{
++				yield return $"::Microsoft::WRL::ComPtr<{Projection(DUI.NamespaceWindowsUIXamlInterop)}::INotifyCollectionChanged> cacheCC_{step.CodeName};";
++			}
++			foreach (var child in step.TrackingSteps.OfType<DependencyPropertyStep>())
++			{
++				if (step is RootStep)
++				{
++					yield return $"::Microsoft::WRL::WeakRef cacheDPC_{child.CodeName}; // {Projection(DUI.NamespaceWindowsUIXaml)}::IDependencyObject";
++				}
++				else
++				{
++					yield return $"::Microsoft::WRL::ComPtr<{Projection(DUI.NamespaceWindowsUIXaml)}::IDependencyObject> cacheDPC_{child.CodeName};";
++				}
++			}
++		}
++	}
++
++	public IEnumerable<string> GetTokenDeclarations(BindUniverse bindUniverse)
++	{
++		foreach (var step in bindUniverse.BindPathSteps.Values.Where((BindPathStep step) => step.IsIncludedInUpdate && step.NeedsUpdateChildListeners))
++		{
++			if (step.ImplementsINPC)
++			{
++				yield return $"::EventRegistrationToken tokenPC_{step.CodeName} {{}};";
++			}
++			if (step.ImplementsINDEI && Features.InputValidation.ExistsInVersion(base.ProjectInfo.TargetPlatformMinVersion))
++			{
++				yield return $"::EventRegistrationToken tokenEC_{step.CodeName} {{}};";
++			}
++			if (step.ImplementsIObservableVector)
++			{
++				yield return $"::EventRegistrationToken tokenVC_{step.CodeName} {{}};";
++			}
++			if (step.ImplementsIObservableMap)
++			{
++				yield return $"::EventRegistrationToken tokenMC_{step.CodeName} {{}};";
++			}
++			else if (step.ImplementsINCC)
++			{
++				yield return $"::EventRegistrationToken tokenCC_{step.CodeName} {{}};";
++			}
++		}
++		foreach (var step in bindUniverse.BindPathSteps.Values.Where((BindPathStep step) => step.IsIncludedInUpdate && step.NeedsUpdateChildListeners))
++		{
++			foreach (var child in step.TrackingSteps.OfType<DependencyPropertyStep>())
++			{
++				yield return $"__int64 tokenDPC_{child.CodeName}{{0}};";
++			}
++		}
++	}
++}

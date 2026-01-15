@@ -1,0 +1,74 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
+index 36bb7a6..f9e49fa 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
+@@ -1,5 +1,6 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+ using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -9,10 +10,58 @@ internal class MethodStepCodeGenerator : BindPathStepCodeGenerator<MethodStep>
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+-			string paramList = base.Instance.Parameters.ForCall();
+-			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CSharpName() + "." + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.VBName() + "." + base.Instance.MethodName + "(" + paramList + ")");
++			IBindPathStepCodeGen parentCodeGen = Instance.Parent.CodeGen();
++			ICodeGenOutput parentPathExpression = parentCodeGen.PathExpression;
++			ICodeGenOutput parentMemberAccessOperator = parentCodeGen.MemberAccessOperator;
++			string paramList = Instance.Parameters.ForCall();
++			return new LanguageSpecificString(
++				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.MethodName + "(" + paramList + ")",
++				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.MethodName + "(" + paramList + ")",
++				() => parentPathExpression.CSharpName() + "." + Instance.MethodName + "(" + paramList + ")",
++				() => parentPathExpression.VBName() + "." + Instance.MethodName + "(" + paramList + ")",
++				wrl: () =>
++				{
++					if (Instance.ValueType.UnderlyingType.FullName == "System.Void")
++					{
++						return
++$$"""
++// BEGIN MethodStepCodeGenerator.PathExpression - Void branch
++{{parentPathExpression.WRLName()}}
++
++if (SUCCEEDED(hrT))
++{
++{{Instance.OwnerType.WRLDeclareQIIfNeeded(Instance.OwnerType.WRLNameInterfaceSpecific(Instance.MethodName), parentCodeGen.PathExpression.WRLOutVarName(), "pMethodDeclaringInterface").WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = pMethodDeclaringInterface->{{Instance.MethodName}}({{paramList}});
++    }
++}
++// END MethodStepCodeGenerator.PathExpression - Void branch
++""";
++					}
++					else
++					{
++						string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
++						return
++$$"""
++// BEGIN MethodStepCodeGenerator.PathExpression - Non-void branch
++{{parentPathExpression.WRLName()}}
++
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++{{Instance.OwnerType.WRLDeclareQIIfNeeded(Instance.OwnerType.WRLNameInterfaceSpecific(Instance.MethodName), parentCodeGen.PathExpression.WRLOutVarName(), "pMethodDeclaringInterface").WRL_Indent(1)}}
++    if (SUCCEEDED(hrT))
++    {
++        hrT = pMethodDeclaringInterface->{{Instance.MethodName}}({{paramList}}{{(paramList.Length > 0 ? ", " : string.Empty)}}{{Instance.ValueType.WRLOutParam(n_temp)}});
++    }
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END MethodStepCodeGenerator.PathExpression - Non-void branch
++""";
++					}
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ }

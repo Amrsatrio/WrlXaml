@@ -1,0 +1,120 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
+index f44b4da..c04e029 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
+@@ -1,5 +1,6 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
+ using Microsoft.Xaml.XamlCompiler;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -9,16 +10,103 @@ internal class ArrayIndexStepCodeGenerator : BindPathStepCodeGenerator<ArrayInde
+ 	{
+ 		get
+ 		{
+-			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"safe_cast<::Windows::Foundation::Collections::IVector<{base.Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->GetAt({base.Instance.Index})", () => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IVector<{0}>>().GetAt({2})", base.Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), base.Instance.Index), () => $"{parentPathExpression.CSharpName()}[{base.Instance.Index}]", () => $"{parentPathExpression.VBName()}({base.Instance.Index})");
++			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++			return new LanguageSpecificString(
++				() => $"safe_cast<::Windows::Foundation::Collections::IVector<{Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->GetAt({Instance.Index})",
++				() => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IVector<{0}>>().GetAt({2})", Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), Instance.Index),
++				() => $"{parentPathExpression.CSharpName()}[{Instance.Index}]",
++				() => $"{parentPathExpression.VBName()}({Instance.Index})",
++				wrl: () =>
++				{
++					string n_vector = WRL_InternalGetTempVarName(nameof(PathExpression), "Vector");
++					return
++$$"""
++// BEGIN ArrayIndexStepCodeGenerator.PathExpression
++// Paste parentPathExpression
++{{parentPathExpression.WRLName()}}
++
++::Microsoft::WRL::ComPtr<::Windows::Foundation::Collections::IVector<{{Instance.ValueType.WRLNameTypeArg()}}>> {{n_vector}};
++if (SUCCEEDED(hrT))
++{
++    hrT = {{parentPathExpression.WRLOutVarName()}}.As(&{{n_vector}});
++}
++{{Instance.ValueType.WRLDeclareSmartVar(PathExpression.WRLOutVarName())}}
++if (SUCCEEDED(hrT))
++{
++    hrT = {{n_vector}}->GetAt({{Instance.Index}}, {{Instance.ValueType.WRLOutParam(PathExpression.WRLOutVarName())}});
++}
++// END ArrayIndexStepCodeGenerator.PathExpression
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 		}
+ 	}
+ 
+-	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => string.Format("safe_cast<::Windows::Foundation::Collections::IVector<{0}>^>({1})->GetAt({2})", base.Instance.ValueType.CppCXName(), "obj", base.Instance.Index), () => string.Format("{0}.as <::winrt::Windows::Foundation::Collections::IVector<{1}>>().GetAt({2})", "obj", base.Instance.ValueType.CppWinRTName(), base.Instance.Index), () => string.Format("{0}[{1}]", "obj", base.Instance.Index), () => string.Format("{0}({1})", "obj", base.Instance.Index));
++	public override ICodeGenOutput UpdateCallParam
++	{
++		get
++		{
++			return new LanguageSpecificString(
++				() => string.Format("safe_cast<::Windows::Foundation::Collections::IVector<{0}>^>({1})->GetAt({2})", Instance.ValueType.CppCXName(), "obj", Instance.Index),
++				() => string.Format("{0}.as <::winrt::Windows::Foundation::Collections::IVector<{1}>>().GetAt({2})", "obj", Instance.ValueType.CppWinRTName(), Instance.Index),
++				() => string.Format("{0}[{1}]", "obj", Instance.Index),
++				() => string.Format("{0}({1})", "obj", Instance.Index),
++				wrl: () =>
++				{
++					string n_vector = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Vector");
++					return
++$$"""
++// BEGIN ArrayIndexStepCodeGenerator.UpdateCallParam
++::Microsoft::WRL::ComPtr<::Windows::Foundation::Collections::IVector<{{Instance.ValueType.WRLNameTypeArg()}}>> {{n_vector}};
++if (SUCCEEDED(hrT))
++{
++    hrT = obj->QueryInterface(IID_PPV_ARGS(&{{n_vector}}));
++}
++{{Instance.ValueType.WRLDeclareSmartVar(UpdateCallParam.WRLOutVarName())}}
++if (SUCCEEDED(hrT))
++{
++    hrT = {{n_vector}}->GetAt({{Instance.Index}}, {{Instance.ValueType.WRLOutParam(UpdateCallParam.WRLOutVarName())}});
++}
++// END ArrayIndexStepCodeGenerator.UpdateCallParam
++""";
++				},
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
++		}
++	}
+ 
+ 	public override ICodeGenOutput PathSetExpression(ICodeGenOutput value)
+ 	{
+-		ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+-		return new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IVector<" + base.Instance.ValueType.CppCXName() + ">^>" + $"({parentPathExpression.CppCXName()})->SetAt({base.Instance.Index}, {value.CppCXName()})", () => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections" + $"::IVector<{base.Instance.ValueType.CppWinRTName()}>>().SetAt({base.Instance.Index}, {value.CppWinRTName()})", () => PathExpression.CSharpName() + " = " + value.CSharpName(), () => PathExpression.VBName() + " = " + value.VBName());
++		ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
++		return new LanguageSpecificString(
++			() => "safe_cast<::Windows::Foundation::Collections::IVector<" + Instance.ValueType.CppCXName() + ">^>" + $"({parentPathExpression.CppCXName()})->SetAt({Instance.Index}, {value.CppCXName()})",
++			() => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections" + $"::IVector<{Instance.ValueType.CppWinRTName()}>>().SetAt({Instance.Index}, {value.CppWinRTName()})",
++			() => PathExpression.CSharpName() + " = " + value.CSharpName(),
++			() => PathExpression.VBName() + " = " + value.VBName(),
++			wrl: () =>
++			{
++				string n_vector = WRL_InternalGetTempVarName(nameof(PathSetExpression), "Vector");
++				return
++$$"""
++// BEGIN ArrayIndexStepCodeGenerator.PathSetExpression
++// Paste parentPathExpression
++{{parentPathExpression.WRLName()}}
++
++::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IVector<{{Instance.ValueType.WRLNameTypeArg()}}>> {{n_vector}};
++if (SUCCEEDED(hrT))
++{
++    hrT = {{parentPathExpression.WRLOutVarName()}}.As(&{{n_vector}});
++}
++if (SUCCEEDED(hrT))
++{
++{{value.WRLName().WRL_Indent(1)}}
++}
++if (SUCCEEDED(hrT))
++{
++    hrT = {{n_vector}}->SetAt({{Instance.Index}}, {{value.WRLOutVarName()}});
++}
++// END ArrayIndexStepCodeGenerator.PathSetExpression
++""";
++			},
++			wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathSetExpression), "Out"));
+ 	}
+ }

@@ -1,0 +1,15 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ApiInformationMethodCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ApiInformationMethodCodeGenerator.cs
+index ccbe4cf..314b3af 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ApiInformationMethodCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ApiInformationMethodCodeGenerator.cs
+@@ -4,5 +4,9 @@ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+ internal class ApiInformationMethodCodeGenerator : CodeGeneratorBase<ApiInformationMethod>, IApiInformationCodeGen
+ {
+-	public ICodeGenOutput CallExpression => new LanguageSpecificString(() => string.Format("{1}::Windows::Foundation::Metadata::ApiInformation::{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"), () => string.Format("{1}::winrt::Windows::Foundation::Metadata::ApiInformation::{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"), () => string.Format("{1}global::Windows.Foundation.Metadata.ApiInformation.{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"), () => string.Format("{1}Global.Windows.Foundation.Metadata.ApiInformation.{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "Not "));
++	public ICodeGenOutput CallExpression => new LanguageSpecificString(
++		() => string.Format("{1}::Windows::Foundation::Metadata::ApiInformation::{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"),
++		() => string.Format("{1}::winrt::Windows::Foundation::Metadata::ApiInformation::{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"),
++		() => string.Format("{1}global::Windows.Foundation.Metadata.ApiInformation.{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "!"),
++		() => string.Format("{1}Global.Windows.Foundation.Metadata.ApiInformation.{0}", base.Instance.MethodName, base.Instance.Condition ? "" : "Not "));
+ }

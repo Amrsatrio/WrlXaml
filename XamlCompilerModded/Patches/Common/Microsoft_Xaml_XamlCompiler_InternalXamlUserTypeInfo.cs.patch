@@ -1,0 +1,14 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/InternalXamlUserTypeInfo.cs b/Microsoft/Xaml/XamlCompiler/InternalXamlUserTypeInfo.cs
+index 993d66b..6390195 100644
+--- a/Microsoft/Xaml/XamlCompiler/InternalXamlUserTypeInfo.cs
++++ b/Microsoft/Xaml/XamlCompiler/InternalXamlUserTypeInfo.cs
+@@ -40,6 +40,9 @@ internal class InternalXamlUserTypeInfo
+ 	public string StandardName => _simpleTypeEntry.StandardName;
+ 
+ 	public LanguageSpecificString FullName => _simpleTypeEntry.FullName;
++	public string FullDefaultInterfaceName => _simpleTypeEntry.FullDefaultInterfaceName;
++	public string FullFactoryInterfaceForComposingName => _simpleTypeEntry.FullFactoryInterfaceForComposingName;
++	public bool IsActivatable => _simpleTypeEntry.IsActivatable;
+ 
+ 	public string MemberFriendlyName => _simpleTypeEntry.MemberFriendlyName;
+ 

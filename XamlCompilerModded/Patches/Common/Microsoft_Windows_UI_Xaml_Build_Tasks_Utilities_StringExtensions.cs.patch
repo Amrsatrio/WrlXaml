@@ -1,0 +1,54 @@
+diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
+index ae16787..15c760d 100644
+--- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
++++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
+@@ -1,3 +1,4 @@
++using System;
+ using System.Collections.Generic;
+ using System.Linq;
+ using System.Text;
+@@ -62,4 +63,44 @@ internal static class StringExtensions
+ 		}
+ 		return text;
+ 	}
++
++	public static string ToFactoryInterface(this string fullName)
++	{
++		// Windows.UI.Xaml.Controls.UserControl
++		// -> Windows.UI.Xaml.Controls.IUserControlFactory
++		fullName = fullName.Replace(".", "::");
++		var dotIndex = fullName.LastIndexOf("::", StringComparison.Ordinal);
++		var pathWithDot = dotIndex != -1 ? fullName.Substring(0, dotIndex + 2) : "";
++		var typeName = dotIndex != -1 ? fullName.Substring(dotIndex + 2) : fullName;
++		typeName = $"I{typeName}Factory";
++		return $"{pathWithDot}{typeName}";
++	}
++
++	public static string ToInterface(this string fullName)
++	{
++		// Windows.UI.Xaml.Controls.UserControl
++		// -> Windows.UI.Xaml.Controls.IUserControl
++		fullName = fullName.Replace(".", "::");
++		var hasTypeArguments = fullName.Contains("<") && fullName.Contains(">");
++		if (hasTypeArguments)
++		{
++			return fullName;
++		}
++		var dotIndex = fullName.LastIndexOf("::", StringComparison.Ordinal);
++		if (dotIndex == -1)
++		{
++			return fullName; // No namespace, such as IInspectable
++		}
++		var pathWithDot = fullName.Substring(0, dotIndex + 2);
++		var typeName = fullName.Substring(dotIndex + 2);
++		typeName = $"I{typeName}";
++		return $"{pathWithDot}{typeName}";
++	}
++
++	public static string NoABIPrefix(this string globalizedName)
++	{
++		// ::ABI::ClassLibrary::UserControl
++		// -> ::ClassLibrary::UserControl
++		return globalizedName.StartsWith("::ABI::") ? globalizedName.Substring(5) : globalizedName;
++	}
+ }

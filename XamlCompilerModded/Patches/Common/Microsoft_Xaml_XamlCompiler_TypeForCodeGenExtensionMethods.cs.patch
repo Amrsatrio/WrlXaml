@@ -1,0 +1,260 @@
+diff --git a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
+index f17c72c..16ba534 100644
+--- a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
++++ b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
+@@ -5,6 +5,7 @@ using System.Reflection;
+ using System.Xaml;
+ using Microsoft.UI.Xaml.Markup.Compiler;
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ 
+ namespace Microsoft.Xaml.XamlCompiler;
+ 
+@@ -52,6 +53,235 @@ public static class TypeForCodeGenExtensionMethods
+ 		return type.GetTypeForCodeGen().MemberFriendlyName;
+ 	}
+ 
++// #pragma region "WRL support"
++
++	public static string WRLName(this XamlType type)
++	{
++		return type.GetTypeForCodeGen().FullName.WRLName();
++	}
++
++	public static string WRLNameInterface(this XamlType type)
++	{
++		return type.GetTypeForCodeGen().FullDefaultInterfaceName;
++	}
++
++	public static string WRLNameInterfaceSpecific(this XamlType type, string methodName)
++	{
++		return type.GetTypeForCodeGen().FullInterfaceNameSpecific(methodName);
++	}
++
++	public static string WRLNameStaticInterfaceSpecific(this XamlType type, string methodName)
++	{
++		return type.GetTypeForCodeGen().FullInterfaceNameSpecific(methodName, true);
++	}
++
++	public static string WRLNameFactoryInterfaceForComposing(this XamlType type)
++	{
++		return type.GetTypeForCodeGen().FullFactoryInterfaceForComposingName;
++	}
++
++	public static string ToRuntimeClassNameConstant(this XamlType type)
++	{
++		return "RuntimeClass_" + type.GetTypeForCodeGen().MemberFriendlyName;
++	}
++
++	public static string WRLNameTypeArg(this XamlType type)
++	{
++		return WRLName(type) + (!type.UnderlyingType.IsValueType && type.WRLNameInterface() != "HSTRING" ? "*" : string.Empty);
++	}
++
++	public static string WRLNameNonSmartVar(this XamlType type, bool ownType = false)
++	{
++		if (type.UnderlyingType.IsValueType)
++		{
++			return type.WRLName() + (ownType ? string.Empty : " const&");
++		}
++
++		var interfaceName = type.WRLNameInterface();
++		return interfaceName + (interfaceName != "HSTRING" ? "*" : string.Empty);
++	}
++
++	public static string WRLDeclareSmartVar(this XamlType type, string varName, string init = null)
++	{
++		if (type.UnderlyingType.IsValueType)
++		{
++			if (init == "__WRL_NOINIT")
++			{
++				return $"{type.WRLName()} {varName};";
++			}
++			return $"{type.WRLName()} {varName} = {init ?? "{}"};";
++		}
++
++		if (init == "__WRL_NOINIT")
++		{
++			init = null;
++		}
++
++		var interfaceName = type.WRLNameInterface();
++		if (interfaceName == "HSTRING")
++		{
++			return $"::Microsoft::WRL::Wrappers::HString {varName}{(init != null ? " = " + init : string.Empty)};";
++		}
++		else
++		{
++			return $"::Microsoft::WRL::ComPtr<{interfaceName}> {varName}{(init != null ? " = " + init : string.Empty)};";
++		}
++	}
++
++	public static string WRLOutParam(this XamlType type, string paramName)
++	{
++		return type.UnderlyingType.IsValueType ? "&" + paramName : paramName + ".GetAddressOf()";
++	}
++
++	public static string WRLGetSmartVar(this XamlType type, string varName)
++	{
++		return type.UnderlyingType.IsValueType ? varName : varName + ".Get()";
++	}
++
++	public static string WRLDeclareQIIfNeeded(this XamlType type, string targetType, string inputExpr, string outputVarName, bool nullable = false, bool forceQI = false)
++	{
++		if (forceQI || type.WRLNameInterface() != targetType)
++		{
++			return
++$$"""
++::Microsoft::WRL::ComPtr<{{targetType}}> {{outputVarName}}_target;
++hrT = {{(nullable ? $"{inputExpr} == nullptr ? S_OK : " : string.Empty)}}{{inputExpr}}->QueryInterface(IID_PPV_ARGS(&{{outputVarName}}_target));
++{{targetType}}* {{outputVarName}} = {{outputVarName}}_target.Get();
++""";
++		}
++		else
++		{
++			return $"{type.WRLNameNonSmartVar()} {outputVarName} = {inputExpr};";
++		}
++	}
++
++	public static string WRLXamlTypeName(this XamlType type, out string typeNameInitializerList)
++	{
++		string nameExpr = "L\"" + XamlSchemaCodeInfo.GetFullGenericNestedName(type.UnderlyingType, true) + "\"";
++
++		string typeNamePrep =
++$$"""
++HSTRING_HEADER strTypeNameHeader;
++HSTRING strTypeName;
++hrT = WindowsCreateStringReference({{nameExpr}}, ARRAYSIZE({{nameExpr}}) - 1, &strTypeNameHeader, &strTypeName);
++""";
++
++		typeNameInitializerList =
++$$"""
++{ strTypeName, ::ABI::Windows::UI::Xaml::Interop::TypeKind::TypeKind_{{(type.UnderlyingType.IsValueType ? "Primitive" : "Metadata")}} }
++""";
++
++		return typeNamePrep;
++	}
++
++	private static Type GetDeclaringInterfaceType(this MethodInfo method, IEnumerable<Type> ifacesToSearch)
++	{
++		foreach (var iface in ifacesToSearch)
++		{
++			var ifaceMethod = iface.GetMethod(
++				method.Name,
++				method.GetParameters().Select(p => p.ParameterType).ToArray()
++			);
++			if (ifaceMethod != null)
++				return iface;
++		}
++
++		return null;
++	}
++
++	private static IEnumerable<Type> GetInterfaceListOfAttribute(this Type classType, string attributeName)
++	{
++		return classType.GetCustomAttributesData()
++			.Where(it => it.AttributeType.Name == attributeName)
++			.Select(it => it.ConstructorArguments[0].Value as Type);
++	}
++
++	public static Type GetDeclaringInterfaceType(this Type classType, MethodInfo method)
++	{
++		var ifacesToSearch = classType.GetInterfaces().AsEnumerable();
++		ifacesToSearch = ifacesToSearch.Except(classType.GetInterfaceListOfAttribute("StaticAttribute"));
++		ifacesToSearch = ifacesToSearch.Except(classType.GetInterfaceListOfAttribute("ComposableAttribute"));
++		return method.GetDeclaringInterfaceType(ifacesToSearch);
++	}
++
++	public static Type GetDeclaringInterfaceType(this Type classType, string methodName)
++	{
++		var method = classType.GetMethod(methodName);
++		if (method == null)
++		{
++			// If we're an interface, scan other interfaces within this interface
++			if (classType.IsInterface)
++			{
++				var ifaceMethod = classType.GetDeclaringInterfaceType_Interface(methodName);
++				if (ifaceMethod != null)
++				{
++					return ifaceMethod.DeclaringType;
++				}
++			}
++			throw new ArgumentException($"Method '{methodName}' not found in type '{classType.FullName}'.");
++		}
++		return GetDeclaringInterfaceType(classType, method);
++	}
++
++	public static MethodInfo GetDeclaringInterfaceType_Interface(this Type interfaceType, string methodName)
++	{
++		foreach (var iface in interfaceType.GetInterfaces())
++		{
++			var ifaceMethod = iface.GetMethod(methodName);
++			if (ifaceMethod == null)
++			{
++				ifaceMethod = iface.GetDeclaringInterfaceType_Interface(methodName);
++			}
++			if (ifaceMethod != null)
++			{
++				return ifaceMethod;
++			}
++		}
++		return null;
++	}
++
++	public static Type GetStaticDeclaringInterfaceType(this Type classType, MethodInfo method)
++	{
++		return method.GetDeclaringInterfaceType(classType.GetInterfaceListOfAttribute("StaticAttribute"));
++	}
++
++	public static Type GetStaticDeclaringInterfaceType(this Type classType, string methodName)
++	{
++		var method = classType.GetMethod(methodName);
++		if (method == null)
++		{
++			throw new ArgumentException($"Method '{methodName}' not found in type '{classType.FullName}'.");
++		}
++		return GetStaticDeclaringInterfaceType(classType, method);
++	}
++
++	public static Type GetFactoryTypeForComposing(this Type classType)
++	{
++		var factoryIfacesForComposable = classType.GetCustomAttributesData()
++			.Where(it => it.AttributeType.Name == "ComposableAttribute")
++			.Select(it => it.ConstructorArguments[0].Value as Type)
++			.ToList();
++		if (factoryIfacesForComposable.Count != 1)
++		{
++			throw new ArgumentException($"Type '{classType.FullName}' does not have exactly one factory interface for composing.");
++		}
++		return factoryIfacesForComposable[0];
++	}
++
++	public static Type GetDefaultInterfaceType(this Type classType)
++	{
++		var defaultInterfaceTypeName = classType.GetDefaultInterfaceName();
++		return defaultInterfaceTypeName != null ? classType.Assembly.GetType(defaultInterfaceTypeName) : classType;
++	}
++
++	public static bool IsActivatable(this Type classType)
++	{
++		return classType.GetCustomAttributesData()
++			.Any(it => it.AttributeType.Name == "ActivatableAttribute");
++	}
++
++// #pragma endregion "WRL support"
++
+ 	public static string VBName(this XamlType type)
+ 	{
+ 		return type.GetTypeForCodeGen().FullName.VBName();
+@@ -93,9 +323,10 @@ public static class TypeForCodeGenExtensionMethods
+ 	public static LanguageSpecificString Declaration(this IEnumerable<Parameter> parameters)
+ 	{
+ 		IEnumerable<string> cppDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "CppWinRT", globalized: true) + " const& " + p.Name);
++		IEnumerable<string> wrlDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType.GetDefaultInterfaceType(), ProgrammingLanguage.WRL, globalized: true) + "* " + p.Name);
+ 		IEnumerable<string> csDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "C#", globalized: true) + " " + p.Name);
+ 		IEnumerable<string> vbDeclarations = parameters.Select((Parameter p) => p.Name + " As " + XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "VB", globalized: true));
+ 		IEnumerable<string> cxDeclarations = parameters.Select((Parameter p) => string.Format("{0}{1} {2}", XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "C++", globalized: true), p.ParameterType.IsValueType ? "" : " ^ ", p.Name));
+-		return new LanguageSpecificString(() => cxDeclarations.ToCommaSeparatedValues(), () => cppDeclarations.ToCommaSeparatedValues(), () => csDeclarations.ToCommaSeparatedValues(), () => vbDeclarations.ToCommaSeparatedValues());
++		return new LanguageSpecificString(() => cxDeclarations.ToCommaSeparatedValues(), () => cppDeclarations.ToCommaSeparatedValues(), () => csDeclarations.ToCommaSeparatedValues(), () => vbDeclarations.ToCommaSeparatedValues(), () => wrlDeclarations.ToCommaSeparatedValues());
+ 	}
+ }

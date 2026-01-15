@@ -1,0 +1,62 @@
+diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
+index f08288a..dc1a077 100644
+--- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
++++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
+@@ -1,4 +1,5 @@
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.XamlCompiler;
+ 
+ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+ 
+@@ -8,11 +9,48 @@ internal class RootStepCodeGenerator : BindPathStepCodeGenerator<RootStep>
+ 	{
+ 		get
+ 		{
+-			if (base.Instance.IsElementRoot)
++			if (Instance.IsElementRoot)
+ 			{
+-				return new LanguageSpecificString(() => "this", () => "", () => "this", () => "Me");
++				return new LanguageSpecificString(
++					() => "this",
++					() => "",
++					() => "this",
++					() => "Me",
++					wrl: () =>
++					{
++						return
++$$"""
++// BEGIN RootStepCodeGenerator.PathExpression - Instance.IsElementRoot branch
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = this;
++// END RootStepCodeGenerator.PathExpression - Instance.IsElementRoot branch
++""";
++					},
++					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
++			}
++			else
++			{
++				return new LanguageSpecificString(
++					() => "this->GetDataRoot()",
++					() => "GetDataRoot()",
++					() => "this.dataRoot",
++					() => "Me.dataRoot",
++					wrl: () =>
++					{
++						string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp");
++						return
++$$"""
++// BEGIN RootStepCodeGenerator.PathExpression - !Instance.IsElementRoot branch
++{{Instance.ValueType.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    hrT = GetDataRoot({{Instance.ValueType.WRLOutParam(n_temp)}});
++}
++{{Instance.ValueType.WRLNameNonSmartVar()}} {{PathExpression.WRLOutVarName()}} = {{Instance.ValueType.WRLGetSmartVar(n_temp)}};
++// END RootStepCodeGenerator.PathExpression - !Instance.IsElementRoot branch
++""";
++					},
++					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
+ 			}
+-			return new LanguageSpecificString(() => "this->GetDataRoot()", () => "GetDataRoot()", () => "this.dataRoot", () => "Me.dataRoot");
+ 		}
+ 	}
+ }
