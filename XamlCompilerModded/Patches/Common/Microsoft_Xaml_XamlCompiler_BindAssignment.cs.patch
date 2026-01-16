@@ -1,8 +1,21 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/BindAssignment.cs b/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
-index 14b73a4..443c8de 100644
+index 14b73a4..e508f02 100644
 --- a/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
 +++ b/Microsoft/Xaml/XamlCompiler/BindAssignment.cs
-@@ -67,7 +67,22 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+@@ -2,10 +2,12 @@ using System;
+ using System.Collections.Generic;
+ using System.Globalization;
+ using System.Linq;
++using System.Text;
+ using System.Xaml;
+ using Microsoft.UI.Xaml.Markup.Compiler;
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Properties;
+ using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
++using Microsoft.Xaml.XamlCompiler.CodeGenerators;
+ using Microsoft.Xaml.XamlCompiler.Errors;
+ using Microsoft.Xaml.XamlDom;
+ 
+@@ -67,7 +69,22 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
  				{
  					if (MemberType.IsString())
  					{
@@ -26,7 +39,7 @@ index 14b73a4..443c8de 100644
  					}
  					return MemberType.GetStringToThing(fallbackMemberValue.Quotenate(), isLiteral: true);
  				}
-@@ -84,7 +99,8 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+@@ -84,7 +101,8 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
  			{
  				if (TargetNullValue == null)
  				{
@@ -36,7 +49,94 @@ index 14b73a4..443c8de 100644
  				}
  				return new LanguageSpecificString(() => TargetNullValue.Quotenate(), () => "L" + TargetNullValue.Quotenate(), () => TargetNullValue.Quotenate(), () => TargetNullValue.Quotenate());
  			}
-@@ -210,7 +226,22 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+@@ -205,12 +223,108 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+ 		string cppConverter = string.Format("::winrt::unbox_value<{0}>(LookupConverter(L\"{1}\").{6}(::winrt::box_value({5}), ::winrt::xaml_typename<{2}>(), {3}, {4}))", type.CppWinRTName(), Converter, type.CppWinRTName(), (ConverterParameter == null) ? "nullptr" : ("::winrt::box_value(::winrt::hstring(L\"" + ConverterParameter + "\"))"), (ConverterLanguage == null) ? "::winrt::hstring{}" : ("L\"" + ConverterLanguage + "\""), objectExpression.CppWinRTName(), text);
+ 		string csConverter = string.Format("({0})this.LookupConverter(\"{1}\").{5}({4}, typeof({0}), {2}, {3})", type.CSharpName(), Converter, (ConverterParameter == null) ? "null" : ConverterParameter.Quotenate(), (ConverterLanguage == null) ? "null" : ConverterLanguage.Quotenate(), objectExpression.CSharpName(), text);
+ 		string vbConverter = string.Format("DirectCast(Me.LookupConverter(\"{1}\").{5}({4}, GetType({0}), {2}, {3}),{0})", type.VBName(), Converter, (ConverterParameter == null) ? "Nothing" : ConverterParameter.Quotenate(), (ConverterLanguage == null) ? "Nothing" : ConverterLanguage.Quotenate(), objectExpression.VBName(), text);
+-		return new LanguageSpecificString(() => cxConverter, () => cppConverter, () => csConverter, () => vbConverter);
++		return new LanguageSpecificString(() => cxConverter, () => cppConverter, () => csConverter, () => vbConverter,
++			wrl: () =>
++			{
++				const string n_temp = "_BindAssignment_GetConverterExpression_Temp";
++				const string n_output = "_BindAssignment_GetConverterExpression_Out";
++
++				string pasteConverterParameter;
++				if (ConverterParameter != null)
++				{
++					pasteConverterParameter = $"hrT = TroleBoxer::BoxValue(L\"{ConverterParameter}\", &spParameterBoxed);";
++				}
++				else
++				{
++					pasteConverterParameter = "/* No converter parameter */";
++				}
++
++				string pasteConverterLanguage;
++				if (ConverterLanguage != null)
++				{
++					pasteConverterLanguage =
++$$"""
++HSTRING_HEADER strLanguageHeader;
++hrT = WindowsCreateStringReference(L"{{ConverterLanguage}}", (UINT32)wcslen(L"{{ConverterLanguage}}"), &strLanguageHeader, &strLanguage);
++""";
++				}
++				else
++				{
++					pasteConverterLanguage = "/* No converter language */";
++				}
++
++				return
++$$"""
++// BEGIN BindAssignment.GetConverterExpression
++{{type.WRLDeclareSmartVar(n_temp)}}
++if (SUCCEEDED(hrT))
++{
++    HSTRING_HEADER strConverterHeader;
++    HSTRING strConverter;
++    hrT = WindowsCreateStringReference(L"{{Converter}}", (UINT32)wcslen(L"{{Converter}}"), &strConverterHeader, &strConverter);
++    if (SUCCEEDED(hrT))
++    {
++        ::Microsoft::WRL::ComPtr<::ABI::Windows::UI::Xaml::Data::IValueConverter> spConverter;
++        hrT = LookupConverter(strConverter, &spConverter);
++        if (SUCCEEDED(hrT))
++        {
++{{objectExpression.WRLName().WRL_Indent(3)}}
++            if (SUCCEEDED(hrT))
++            {
++                ::Microsoft::WRL::ComPtr<IInspectable> spObjectBoxed;
++                hrT = TroleBoxer::BoxValue({{objectExpression.WRLOutVarName()}}, &spObjectBoxed);
++                if (SUCCEEDED(hrT))
++                {
++{{type.WRLXamlTypeName(out var xamlTypeNameInitList).WRL_Indent(5)}}
++                    if (SUCCEEDED(hrT))
++                    {
++                        ::Microsoft::WRL::ComPtr<IInspectable> spParameterBoxed;
++{{pasteConverterParameter.WRL_Indent(6)}}
++                        if (SUCCEEDED(hrT))
++                        {
++                            HSTRING strLanguage = nullptr;
++{{pasteConverterLanguage.WRL_Indent(7)}}
++                            if (SUCCEEDED(hrT))
++                            {
++                                ::Microsoft::WRL::ComPtr<IInspectable> spConvertedValue;
++                                hrT = spConverter->{{text}}(spObjectBoxed.Get(), {{xamlTypeNameInitList}}, spParameterBoxed.Get(), strLanguage, &spConvertedValue);
++                                if (SUCCEEDED(hrT))
++                                {
++                                    hrT = TroleBoxer::UnboxValue(spConvertedValue.Get(), &{{n_temp}});
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++{{type.WRLNameNonSmartVar()}} {{n_output}} = {{type.WRLGetSmartVar(n_temp)}};
++// END BindAssignment.GetConverterExpression
++""";
++			},
++			wrlOutVar: () => "_BindAssignment_GetConverterExpression_Out");
+ 	}
  
  	public LanguageSpecificString DirectAssignmentExpression(string expression)
  	{
@@ -60,7 +160,7 @@ index 14b73a4..443c8de 100644
  	}
  
  	private LanguageSpecificString GetAssignmentExpression(XamlType source, XamlType target, LanguageSpecificString expression, bool convertBack)
-@@ -221,7 +252,24 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
+@@ -221,7 +335,24 @@ internal abstract class BindAssignment : BindAssignmentBase, IBindAssignment
  		}
  		if (source.CanAssignDirectlyTo(target))
  		{
@@ -78,7 +178,7 @@ index 14b73a4..443c8de 100644
 +// Paste expression.WRLName()
 +{{expression.WRLName()}}
 +
-+{{target.WRLNameNonSmartVar()}} _BindAssignment_AssignmentExpression_Out = {{expression.WRLOutVarName()}};
++auto _BindAssignment_AssignmentExpression_Out = {{expression.WRLOutVarName()}};
 +// END BindAssignment.GetAssignmentExpression - source.CanAssignDirectlyTo(target) branch
 +""";
 +				},

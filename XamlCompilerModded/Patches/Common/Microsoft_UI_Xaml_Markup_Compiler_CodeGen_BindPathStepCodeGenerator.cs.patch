@@ -1,35 +1,24 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
-index 15afa7c..42d0725 100644
+index 15afa7c..7c798cf 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/BindPathStepCodeGenerator.cs
-@@ -5,7 +5,12 @@ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
+@@ -5,7 +5,8 @@ namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
  internal abstract class BindPathStepCodeGenerator<T> : CodeGeneratorBase<T>, IBindPathStepCodeGen where T : BindPathStep
  {
 -	public virtual ICodeGenOutput MemberAccessOperator => new LanguageSpecificString(() => (!base.Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".", () => ".", () => ".", () => ".");
-+	public virtual ICodeGenOutput MemberAccessOperator => new LanguageSpecificString(
-+		() => (!Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".",
-+		() => ".",
-+		() => ".",
-+		() => ".",
-+		() => (!Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".");
++	public virtual ICodeGenOutput MemberAccessOperator => new LanguageSpecificString(() => (!base.Instance.ValueType.UnderlyingType.IsValueType) ? "->" : ".", () => ".", () => ".", () => ".",
++		wrl: () => throw new NotSupportedException("Without projections, the same member access operator cannot be used for both static and non-static members. Please implement different branches for each case instead."));
  
  	public abstract ICodeGenOutput PathExpression { get; }
  
-@@ -19,8 +24,19 @@ internal abstract class BindPathStepCodeGenerator<T> : CodeGeneratorBase<T>, IBi
- 
- 	public virtual ICodeGenOutput PathSetExpression(ICodeGenOutput value)
+@@ -21,6 +22,13 @@ internal abstract class BindPathStepCodeGenerator<T> : CodeGeneratorBase<T>, IBi
  	{
--		ICodeGenOutput pathExpression = base.Instance.CodeGen().PathExpression;
-+		ICodeGenOutput pathExpression = Instance.CodeGen().PathExpression;
+ 		ICodeGenOutput pathExpression = base.Instance.CodeGen().PathExpression;
  		string cppWinrtNameNoParen = pathExpression.CppWinRTName().TrimEnd(')', '(');
 -		return new LanguageSpecificString(() => pathExpression.CppCXName() + " = " + value.CppCXName(), () => cppWinrtNameNoParen + "(" + value.CppWinRTName() + ")", () => pathExpression.CSharpName() + " = " + value.CSharpName(), () => pathExpression.VBName() + " = " + value.VBName());
-+		return new LanguageSpecificString(
-+			() => pathExpression.CppCXName() + " = " + value.CppCXName(),
-+			() => cppWinrtNameNoParen + "(" + value.CppWinRTName() + ")",
-+			() => pathExpression.CSharpName() + " = " + value.CSharpName(),
-+			() => pathExpression.VBName() + " = " + value.VBName(),
-+			() => throw new NotSupportedException($"Impossible to make field paths for assignment without projections. Please implement a specialized PathSetExpression for {typeof(T).Name}!"));
++		return new LanguageSpecificString(() => pathExpression.CppCXName() + " = " + value.CppCXName(), () => cppWinrtNameNoParen + "(" + value.CppWinRTName() + ")", () => pathExpression.CSharpName() + " = " + value.CSharpName(), () => pathExpression.VBName() + " = " + value.VBName(),
++			wrl: () => throw new NotSupportedException($"Impossible to make universal assignment expressions without projections. Please implement a specialized PathSetExpression for {typeof(T).Name}."));
 +	}
 +
 +	// @MOD WRL support

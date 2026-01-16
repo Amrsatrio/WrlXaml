@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
-index 222e967..5e1c6e3 100644
+index 222e967..ccc3b1f 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/PropertyStepCodeGenerator.cs
 @@ -1,4 +1,6 @@
@@ -9,15 +9,11 @@ index 222e967..5e1c6e3 100644
  
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
-@@ -8,9 +10,61 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
- 	{
- 		get
+@@ -10,7 +12,59 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
  		{
--			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+ 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
 -			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + base.Instance.PropertyName, () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + base.Instance.PropertyName + "()", () => parentPathExpression.CSharpName() + "." + base.Instance.PropertyName, () => parentPathExpression.VBName() + "." + base.Instance.PropertyName);
-+			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
-+			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
 +			return new LanguageSpecificString(
 +				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.PropertyName,
 +				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.PropertyName + "()",
@@ -74,15 +70,11 @@ index 222e967..5e1c6e3 100644
  		}
  	}
  
-@@ -18,9 +72,90 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
- 	{
- 		get
+@@ -20,7 +74,88 @@ internal class PropertyStepCodeGenerator<T> : BindPathStepCodeGenerator<T> where
  		{
--			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
+ 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
 -			return new LanguageSpecificString(() => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + base.Instance.PropertyName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + base.Instance.PropertyName + "()", () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + base.Instance.PropertyName, () => ((base.Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + base.Instance.PropertyName);
-+			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
-+			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
 +			return new LanguageSpecificString(
 +				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + Instance.PropertyName,
 +				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + Instance.PropertyName + "()",

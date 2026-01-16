@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
 new file mode 100644
-index 0000000..afa43bd
+index 0000000..470c980
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
-@@ -0,0 +1,594 @@
+@@ -0,0 +1,609 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Linq" #>
 +<#@ import namespace="Microsoft.Xaml.DirectUI" #>
@@ -475,8 +475,23 @@ index 0000000..afa43bd
 +                        }
 +
 +<#+                     if (element.BindUniverse.DistinctConvertersUsed.Count() > 0) { #>
-+                        hr = objBindings->SetConverterLookupRoot(this); // TODO A QI may be needed, please FAFO
-+                        if (FAILED(hr)) return delete objBindings, hr;
++                        {
++<#+                         if (Model.CodeInfo.IsResourceDictionary) { #>
++                            ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IResourceDictionary> resourceDictionary;
++                            hr = QueryInterface(IID_PPV_ARGS(&resourceDictionary));;
++                            if (FAILED(hr)) return delete objBindings, hr;
++
++                            hr = objBindings->SetConverterLookupRoot(resourceDictionary.Get());
++                            if (FAILED(hr)) return delete objBindings, hr;
++<#+                         } else { #>
++                            ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IFrameworkElement> frameworkElement;
++                            hr = <#=element.ElementCodeName#>.As(&frameworkElement);
++                            if (FAILED(hr)) return delete objBindings, hr;
++
++                            hr = objBindings->SetConverterLookupRoot(frameworkElement.Get());
++                            if (FAILED(hr)) return delete objBindings, hr;
++<#+                         } #>
++                        }
 +
 +<#+                     }#>
 +                        hr = MakeAndInitialize<<#=Globalize(ProjectInfo.RootNamespace)#>::XamlBindings>(&bindings, objBindings);

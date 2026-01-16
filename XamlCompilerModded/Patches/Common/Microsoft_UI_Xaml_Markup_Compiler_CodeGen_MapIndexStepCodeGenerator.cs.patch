@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
-index 82d838c..bc21653 100644
+index 82d838c..b592cb8 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -120,7 +120,7 @@ index 82d838c..bc21653 100644
 +// BEGIN MapIndexStepCodeGenerator.PathSetExpression
 +if (SUCCEEDED(hrT))
 +{
-+{{parentPathExpression.WRLName().WRL_Indent(1)}}
++{{(Instance.Parent.NeedsCheckForNull ? "/* Already null-checked */" : parentPathExpression.WRLName()).WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
 +        ::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IMap<::HSTRING, {{Instance.ValueType.WRLNameTypeArg()}}>> {{n_map}};

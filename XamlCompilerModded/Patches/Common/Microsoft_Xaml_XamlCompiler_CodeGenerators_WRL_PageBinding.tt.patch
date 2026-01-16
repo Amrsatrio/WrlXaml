@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 new file mode 100644
-index 0000000..243d467
+index 0000000..149387f
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
-@@ -0,0 +1,1626 @@
+@@ -0,0 +1,1842 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Collections.Generic" #>
 +<#@ import namespace="System.Linq" #>
@@ -63,6 +63,25 @@ index 0000000..243d467
 +            return hr;
 +        }
 +
++<# if (bindUniverse.ElementsWithConnectCase.Any()) { #>
++private:
++<# } #>
++<# foreach (var element in bindUniverse.ElementsWithConnectCase) { #>
++<# if (!(element.CanBeInstantiatedLater && element.HasRootNamedElementStep)) continue; #>
++        HRESULT _Connect_UnloadableBindingSourcesToUpdate_<#=element.ObjectCodeName#>()
++        {
++            HRESULT hr = S_OK;
++            {
++<#      ICodeGenOutput pathExpression = element.RootNamedElementStep.CodeGen().PathExpression;#>
++<#      Output_Custom_Update_Call(element.RootNamedElementStep, pathExpression.WRLName(), pathExpression.WRLOutVarName(), KnownStrings.NotPhased);#>
++            }
++            return hr;
++        }
++
++<# } #>
++<# if (bindUniverse.ElementsWithConnectCase.Any()) { #>
++public:
++<# } #>
 +        HRESULT DisconnectUnloadedObject(int connectionId) override
 +        {
 +<#      if (bindUniverse.ElementsWithDisconnectCase.Count() == 0) { #>
@@ -73,43 +92,74 @@ index 0000000..243d467
 +            switch (connectionId)
 +            {
 +<#          foreach (var element in bindUniverse.ElementsWithDisconnectCase) { #>
-+                case <#=element.ConnectionId#>: // <#=element.LineNumberAndXamlFile#>
-+                    {
++            case <#=element.ConnectionId#>: // <#=element.LineNumberAndXamlFile#>
++                {
 +<#              if (bindUniverse.BoundElements.Contains(element)) { #>
 +<#              Output_ApiInformationCall_Push(element.ApiInformation, Indent.OneTab); #>
-+                        if (<#=element.ObjectCodeName#>)
-+                        {
++                    if (<#=element.ObjectCodeName#>.Get())
++                    {
 +<#              foreach (var ba in element.BindAssignments.Where(ba => ba.HasDeferredValueProxy)) { #>
-+                            <#=ba.ObjectDeferredAssignmentCodeName#> = <#=element.GetMemberGetExpression(ba)#>;
-+<#              }#>
-+                            <#=element.ObjectCodeName#> = nullptr;
++                        {
++                            HRESULT hrT;
++<#                  PushIndent(Indent.SevenTabs); #>
++<#                  LanguageSpecificString getMemberGetExpression = element.GetMemberGetExpression(ba); #>
++<#=getMemberGetExpression#>
++<#                  PopIndent(); #>
++                            hr = hrT;
++                            if (FAILED(hr)) return hr;
++
++                            hrT = hr;
++<#                  PushIndent(Indent.SevenTabs); #>
++<#=ba.MemberType.WRLAssignSmartVar(ba.ObjectDeferredAssignmentCodeName.WRLName(), getMemberGetExpression.WRLOutVarName())#>
++<#                  PopIndent(); #>
++                            hr = hrT;
++                            if (FAILED(hr)) return hr;
 +                        }
++<#              }#>
++                        <#=element.ObjectCodeName#>.Reset();
++                    }
 +<#              foreach (var childElem in element.Children.Where(c => bindUniverse.ElementsWithDisconnectCase.Contains(c))) {#>
-+                        DisconnectUnloadedObject(<#=childElem.ConnectionId#>);
++
++                    hr = DisconnectUnloadedObject(<#=childElem.ConnectionId#>);
++                    if (FAILED(hr)) return hr;
 +<#              }#>
 +<#              Output_ApiInformationCall_Pop(element.ApiInformation, Indent.OneTab); #>
 +<#              } #>
 +<#              if (element.HasRootNamedElementStep) { #>
-+                    this->UnloadableBindingSourcesToUpdate.push_back([this]()
-+                    {
-+<#                  PushIndent(Indent.TwoTabs); #>
-+<#                  Output_Custom_Update_Call(element.RootNamedElementStep, "nullptr", "nullptr", KnownStrings.NotPhased);#>
-+<#                  PopIndent(); #>
-+                            });
++                    hr = this->UnloadableBindingSourcesToUpdate.Add(&<#=element.BindUniverse.BindingsClassName#>::_DisconnectUnloadedObject_UnloadableBindingSourcesToUpdate_<#=element.ObjectCodeName#>);
++                    if (FAILED(hr)) return hr;
 +<#              } #>
 +                }
 +                break;
 +<#          }#>
-+                default:
-+                    hr = E_INVALIDARG;
-+                    break;
++            default:
++                hr = E_INVALIDARG;
++                break;
 +            }
 +
 +            return hr;
 +<#      } #>
 +        }
-+<#  if (bindUniverse.ElementsWithBoundLoadAssignments.Any()) { #>
 +
++<# if (bindUniverse.ElementsWithDisconnectCase.Any()) { #>
++private:
++<# } #>
++<# foreach (var element in bindUniverse.ElementsWithDisconnectCase) { #>
++<# if (!element.HasRootNamedElementStep) continue; #>
++        HRESULT _DisconnectUnloadedObject_UnloadableBindingSourcesToUpdate_<#=element.ObjectCodeName#>()
++        {
++            HRESULT hr = S_OK;
++            {
++<#      Output_Custom_Update_Call(element.RootNamedElementStep, "nullptr", "nullptr", KnownStrings.NotPhased);#>
++            }
++            return hr;
++        }
++
++<# } #>
++<# if (bindUniverse.ElementsWithConnectCase.Any()) { #>
++public:
++<# } #>
++<#  if (bindUniverse.ElementsWithBoundLoadAssignments.Any()) { #>
 +        HRESULT UpdateUnloadedElement(int connectionId)
 +        {
 +            HRESULT hr = S_OK;
@@ -121,11 +171,19 @@ index 0000000..243d467
 +                {
 +<#          foreach (var ba in element.BindAssignments.OfType<BoundLoadAssignment>()) { #>
 +<#              PushIndent(Indent.TwoTabs); #>
-+<#              Output_Binding_SetValue_Non_Function_Call(ba, ba.ObjectDeferredAssignmentCodeName, false); #>
++<#              LanguageSpecificString objectDeferredAssignmentCodeName = ba.ObjectDeferredAssignmentCodeName; #>
++<#              LanguageSpecificString objectDeferredAssignmentCodeNameWrapped = new LanguageSpecificString(
++                    objectDeferredAssignmentCodeName.CppCXName,
++                    objectDeferredAssignmentCodeName.CppWinRTName,
++                    objectDeferredAssignmentCodeName.CSharpName,
++                    objectDeferredAssignmentCodeName.VBName,
++                    wrl: () => $"{ba.MemberType.WRLNameNonSmartVar()} _BindAssignmentBase_ObjectDeferredAssignmentCodeName_Out = {ba.MemberType.WRLGetSmartVar(objectDeferredAssignmentCodeName.WRLName())};",
++                    wrlOutVar: () => "_BindAssignmentBase_ObjectDeferredAssignmentCodeName_Out"); #>
++<#              Output_Binding_SetValue_Non_Function_Call(ba, objectDeferredAssignmentCodeNameWrapped, false); #>
 +<#              PopIndent(); #>
 +<#          } #>
-+                    }
-+                    break;
++                }
++                break;
 +<#      }#>
 +            default:
 +                hr = E_INVALIDARG;
@@ -134,10 +192,10 @@ index 0000000..243d467
 +
 +            return hr;
 +        }
++
 +<#  }#>
 +<#  if (bindUniverse.NeedsIDataTemplateExtension) {#>
 +<#      var phaseAssignments = bindUniverse.PhaseAssignments.Where(kvp => kvp.Key != 0).OrderBy(kvp => kvp.Key).ToArray();#>
-+
 +        HRESULT Recycle() override
 +        {
 +            HRESULT hr = S_OK;
@@ -172,7 +230,7 @@ index 0000000..243d467
 +<#              }#>
 +                hrT = hr;
 +<#              PushIndent(Indent.FourTabs);#>
-+<#=phase.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", "_ConnectionIdElement_Reference", "pUIElement")#>
++<#=phase.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", phase.ConnectionIdElement.ReferenceExpression.WRLOutVarName(), "pUIElement")#>
 +<#              PopIndent();#>
 +                hr = hrT;
 +                if (FAILED(hr)) return hr;
@@ -224,7 +282,7 @@ index 0000000..243d467
 +                        {
 +                            hrT = hr;
 +<#      PushIndent(Indent.SevenTabs);#>
-+<#=bindUniverse.RootElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IFrameworkElement2", "_ConnectionIdElement_Reference", "pFE2")#>
++<#=bindUniverse.RootElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IFrameworkElement2", bindUniverse.RootElement.ReferenceExpression.WRLOutVarName(), "pFE2")#>
 +<#      PopIndent();#>
 +                            hr = hrT;
 +                            if (FAILED(hr)) return hr;
@@ -252,13 +310,13 @@ index 0000000..243d467
 +                        if (FAILED(hr)) return hr;
 +
 +<#              if (phase.ConnectionIdElement.CanBeInstantiatedLater) { #>
-+                        if (_ConnectionIdElement_Reference)
++                        if (<#=phase.ConnectionIdElement.ReferenceExpression#>)
 +                        {
 +<#                  PushIndent();#>
 +<#              }#>
 +                        hrT = hr;
 +<#              PushIndent(Indent.FourTabs);#>
-+<#=phase.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", "_ConnectionIdElement_Reference", "pUIElement")#>
++<#=phase.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", phase.ConnectionIdElement.ReferenceExpression.WRLOutVarName(), "pUIElement")#>
 +<#              PopIndent();#>
 +                        hr = hrT;
 +                        if (FAILED(hr)) return hr;
@@ -289,6 +347,7 @@ index 0000000..243d467
 +
 +            return hr;
 +        }
++
 +<# } else if (bindUniverse.NeedsIDataTemplateComponent) { #>
 +        HRESULT Recycle() override
 +        {
@@ -300,36 +359,89 @@ index 0000000..243d467
 +            *nextPhase = 1;
 +            return S_OK;
 +        }
-+<# } #>
 +
++<# } #>
 +<# if (bindUniverse.DistinctConvertersUsed.Count() > 0) { #>
 +<#     if (Model.CodeInfo.IsResourceDictionary) { #>
-+        void SetConverterLookupRoot(<#=Projection(DUI.NamespaceWindowsUIXaml)#>::ResourceDictionary const& resources)
++        HRESULT SetConverterLookupRoot(<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IResourceDictionary* resources)
 +        {
 +            localResources = resources;
++            return S_OK;
 +        }
 +<#     } else { #>
-+        void SetConverterLookupRoot(<#=Projection(DUI.NamespaceWindowsUIXaml)#>::FrameworkElement const& rootElement)
++        HRESULT SetConverterLookupRoot(<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IFrameworkElement* rootElement)
 +        {
-+            converterLookupRoot = rootElement;
++            return Microsoft::WRL::AsWeak(rootElement, &converterLookupRoot);
 +        }
 +<#     }#>
 +
-+        <#=Projection(DUI.NamespaceWindowsUIXamlData)#>::IValueConverter LookupConverter(::winrt::hstring const& key)
++        HRESULT LookupConverter(HSTRING key, <#=Projection(DUI.NamespaceWindowsUIXamlData)#>::IValueConverter** ppConverter)
 +        {
-+<#      if (!Model.CodeInfo.IsResourceDictionary) { #>
-+            if (!localResources)
-+            {
-+                localResources = converterLookupRoot.get().Resources();
-+                converterLookupRoot = nullptr;
-+            }
-+<#      }#>
-+            auto boxedKey = ::winrt::box_value(key);
-+            return (localResources.HasKey(boxedKey) ? localResources.Lookup(boxedKey) : <#=Projection(DUI.NamespaceWindowsUIXaml)#>::Application::Current().Resources().Lookup(boxedKey))
-+                .as<<#=Projection(DUI.NamespaceWindowsUIXamlData)#>::IValueConverter>();
-+        }
-+<#  }#>
++            HRESULT hr;
 +
++<#      if (!Model.CodeInfo.IsResourceDictionary) { #>
++            if (!localResources.Get())
++            {
++                ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IFrameworkElement> spConverterLookupRoot;
++                hr = converterLookupRoot.As(&spConverterLookupRoot);
++                if (FAILED(hr)) return hr;
++
++                hr = spConverterLookupRoot->get_Resources(&localResources);
++                if (FAILED(hr)) return hr;
++
++                converterLookupRoot.Reset();
++            }
++
++<#      }#>
++            ::Microsoft::WRL::ComPtr<IInspectable> spBoxedKey;
++            hr = TroleBoxer::BoxValue(key, &spBoxedKey);
++            if (FAILED(hr)) return hr;
++
++            ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsFoundationCollections)#>::IMap<IInspectable*, IInspectable*>> spLocalResourcesMap;
++            hr = localResources.As(&spLocalResourcesMap);
++            if (FAILED(hr)) return hr;
++
++            boolean fHasKey;
++            hr = spLocalResourcesMap->HasKey(spBoxedKey.Get(), &fHasKey);
++            if (FAILED(hr)) return hr;
++
++            ::Microsoft::WRL::ComPtr<IInspectable> spResource;
++            if (fHasKey)
++            {
++                hr = spLocalResourcesMap->Lookup(spBoxedKey.Get(), &spResource);
++                if (FAILED(hr)) return hr;
++            }
++            else
++            {
++                ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IApplicationStatics> applicationStatics;
++                hr = ::ABI::Windows::Foundation::GetActivationFactory(
++                    ::Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_UI_Xaml_Application).Get(),
++                    &applicationStatics);
++                if (FAILED(hr)) return hr;
++
++                ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IApplication> spCurrentApplication;
++                hr = applicationStatics->get_Current(&spCurrentApplication);
++                if (FAILED(hr)) return hr;
++
++                ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IResourceDictionary> spAppResources;
++                hr = spCurrentApplication->get_Resources(&spAppResources);
++                if (FAILED(hr)) return hr;
++
++                ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsFoundationCollections)#>::IMap<IInspectable*, IInspectable*>> spAppResourcesMap;
++                hr = spAppResources.As(&spAppResourcesMap);
++                if (FAILED(hr)) return hr;
++
++                hr = spAppResourcesMap->Lookup(spBoxedKey.Get(), &spResource);
++                if (FAILED(hr)) return hr;
++            }
++
++            hr = spResource.CopyTo(ppConverter);
++            if (FAILED(hr)) return hr;
++
++            return hr;
++        }
++
++<#  }#>
 +    private:
 +<#  if (bindUniverse.BoundElements != null && bindUniverse.BoundElements.Any()) { #>
 +        // Fields for each control that has bindings.
@@ -338,16 +450,16 @@ index 0000000..243d467
 +<#      if (bindElement.IsWeakRef) { #>
 +        ::Microsoft::WRL::WeakRef <#=bindElement.ObjectCodeName#>; // <#=bindElement.Type.WRLNameInterface()#>
 +<#      } else if (!bindElement.Type.IsDerivedFromControlTemplate()) { #>
-+        ::Microsoft::WRL::ComPtr<<#=bindElement.Type.WRLNameInterface()#>> <#=bindElement.ObjectCodeName#>;
++        <#=bindElement.Type.WRLDeclareSmartVar(bindElement.ObjectCodeName)#>
 +<#      }#>
 +<#      if (bindElement.CanBeInstantiatedLater) { #>
 +<#          foreach (var ba in bindElement.BindAssignments) { #>
-+        <#=ba.MemberType.WRLName()#> <#=ba.ObjectDeferredAssignmentCodeName#> <#=ba.MemberType.IsNullable ? "{nullptr}" : "{}"#>;
++        <#=ba.MemberType.WRLDeclareSmartVar(ba.ObjectDeferredAssignmentCodeName.WRLName())#>
 +<#          } #>
 +<#      } #>
 +<#  } #>
 +<#  if (bindUniverse.UnloadableBindingSourceElements.Any()) { #>
-+        CCoSimpleArray<std::function<void ()>> UnloadableBindingSourcesToUpdate;
++        CCoSimpleArray<HRESULT (<#=bindUniverse.BindingsClassName#>::*)()> UnloadableBindingSourcesToUpdate;
 +<#  } #>
 +<#  if (bindUniverse.ElementsWithBoundLoadAssignments.Any()) { #>
 +        CCoSimpleArray<int> UnloadedElementsToUpdate;
@@ -358,7 +470,7 @@ index 0000000..243d467
 +<#      Output_Listener_Tracking_Fields(bindUniverse);#>
 +<#  }#>
 +<#  if (bindUniverse.DistinctConvertersUsed.Count() > 0) { #>
-+        <#=Projection(DUI.NamespaceWindowsUIXaml)#>::ResourceDictionary localResources { nullptr };
++        ::Microsoft::WRL::ComPtr<<#=Projection(DUI.NamespaceWindowsUIXaml)#>::IResourceDictionary> localResources;
 +<#      if (!Model.CodeInfo.IsResourceDictionary) { #>
 +        ::Microsoft::WRL::WeakRef converterLookupRoot; // <#=Projection(DUI.NamespaceWindowsUIXaml)#>::FrameworkElement
 +<#      }#>
@@ -447,8 +559,8 @@ index 0000000..243d467
 +                ::Microsoft::WRL::ComPtr<::ABI::Windows::UI::Xaml::Data::INotifyPropertyChanged> spContainingNotify;
 +                HRESULT hrGetNotify = <#="cachePC_" + step.CodeName#>.As(&spContainingNotify);
 +<#              } else {#>
-+                ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spContainingNotify;
-+                HRESULT hrGetNotify = GetDataRoot(&spContainingNotify);
++                <#=bindUniverse.DataRootType.WRLDeclareSmartVar("spContainingNotify")#>
++                HRESULT hrGetNotify = GetDataRoot(<#=bindUniverse.DataRootType.WRLOutParam("spContainingNotify")#>);
 +<#              }#>
 +                if (SUCCEEDED(hrGetNotify) && spContainingNotify.Get() && __XAML_IsSameObject(spContainingNotify.Get(), sender))
 +                {
@@ -508,8 +620,8 @@ index 0000000..243d467
 +                ::Microsoft::WRL::ComPtr<::ABI::Windows::UI::Xaml::Interop::INotifyCollectionChanged> spContainingNotify;
 +                HRESULT hrGetNotify = <#="cacheCC_" + step.CodeName#>.As(&spContainingNotify);
 +<#          } else {#>
-+                ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spContainingNotify;
-+                HRESULT hrGetNotify = GetDataRoot(&spContainingNotify);
++                <#=bindUniverse.DataRootType.WRLDeclareSmartVar("spContainingNotify")#>
++                HRESULT hrGetNotify = GetDataRoot(<#=bindUniverse.DataRootType.WRLOutParam("spContainingNotify")#>);
 +<#          }#>
 +                if (SUCCEEDED(hrGetNotify) && spContainingNotify.Get() && __XAML_IsSameObject(spContainingNotify.Get(), sender))
 +                {
@@ -542,11 +654,11 @@ index 0000000..243d467
 +<#          if (step.RequiresChildNotification && step is PropertyStep or CastStep or RootStep && step.ImplementsIObservableVector) { #>
 +            {
 +<#              if (step.RequiresChildNotification && step is not RootStep) { #>
-+                ::Microsoft::WRL::ComPtr<<#=step.ValueType.WRLNameInterface()#>> spContainingNotify;
++                <#=step.ValueType.WRLDeclareSmartVar("spContainingNotify")#>
 +                HRESULT hrGetNotify = <#="cacheVC_" + step.CodeName#>.As(&spContainingNotify);
 +<#              } else {#>
-+                ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spContainingNotify;
-+                HRESULT hrGetNotify = GetDataRoot(&spContainingNotify);
++                <#=bindUniverse.DataRootType.WRLDeclareSmartVar("spContainingNotify")#>
++                HRESULT hrGetNotify = GetDataRoot(<#=bindUniverse.DataRootType.WRLOutParam("spContainingNotify")#>);
 +<#              }#>
 +                if (SUCCEEDED(hrGetNotify) && spContainingNotify.Get() && __XAML_IsSameObject(spContainingNotify.Get(), sender))
 +                {
@@ -579,11 +691,11 @@ index 0000000..243d467
 +<#          if (step.RequiresChildNotification && step is PropertyStep or CastStep or RootStep && step.ImplementsIObservableMap) { #>
 +            {
 +<#              if (step.RequiresChildNotification && step is not RootStep) { #>
-+                ::Microsoft::WRL::ComPtr<<#=step.ValueType.WRLNameInterface()#>> spContainingNotify;
++                <#=step.ValueType.WRLDeclareSmartVar("spContainingNotify")#>
 +                HRESULT hrGetNotify = <#="cacheMC_" + step.CodeName#>.As(&spContainingNotify);
 +<#              } else {#>
-+                ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spContainingNotify;
-+                HRESULT hrGetNotify = GetDataRoot(&spContainingNotify);
++                <#=bindUniverse.DataRootType.WRLDeclareSmartVar("spContainingNotify")#>
++                HRESULT hrGetNotify = GetDataRoot(<#=bindUniverse.DataRootType.WRLOutParam("spContainingNotify")#>);
 +<#              }#>
 +                if (SUCCEEDED(hrGetNotify) && spContainingNotify.Get() && __XAML_IsSameObject(spContainingNotify.Get(), sender))
 +                {
@@ -612,13 +724,13 @@ index 0000000..243d467
 +
 +            if (sender)
 +            {
-+                bool fPropertyEqual;
++                bool fPropertyEqual; (void)fPropertyEqual;
 +<#      foreach (var step in bindUniverse.BindPathSteps.Values.Where(step => step.IsIncludedInUpdate == true)) { #>
 +<#          foreach (var child in step.TrackingSteps.OfType<DependencyPropertyStep>()) { #>
 +
 +                {
 +<#              if (step is RootStep) { #>
-+                    ::Microsoft::WRL::ComPtr<<#=bindUniverse.DataRootType.WRLNameInterface()#>> spRootDependencyObject;
++                    <#=bindUniverse.DataRootType.WRLDeclareSmartVar("spRootDependencyObject")#>
 +                    cacheDPC_<#=child.CodeName#>.As(&spRootDependencyObject);
 +                    fPropertyEqual = __XAML_IsSameObject(sender, spRootDependencyObject.Get());
 +<#              } else { #>
@@ -633,7 +745,7 @@ index 0000000..243d467
 +                            fPropertyEqual = __XAML_IsSameObject(dependencyProperty.Get(), prop);
 +                        }
 +<#              } else { #>
-+                        ::Microsoft::WRL::ComPtr<<#=child.OwnerType.WRLNameInterface()#>Statics> memberDeclaringStatics;
++                        ::Microsoft::WRL::ComPtr<<#=child.OwnerType.WRLNameStaticInterfaceSpecific("get_" + child.PropertyName + "Property")#>> memberDeclaringStatics;
 +                        if (SUCCEEDED(::ABI::Windows::Foundation::GetActivationFactory(
 +                            ::Microsoft::WRL::Wrappers::HStringReference(<#=child.OwnerType.ToRuntimeClassNameConstant()#>).Get(),
 +                            &memberDeclaringStatics)))
@@ -776,15 +888,24 @@ index 0000000..243d467
 +                        {
 +                            HRESULT hrInner = S_OK;
 +
-+<#+         if (!evt.PathStep.ValueType.IsDelegate()) { #>
++<#+         var pathStep = evt.PathStep; #>
++<#+         var pathStepGen = pathStep.CodeGen(); #>
++<#+         if (!pathStep.ValueType.IsDelegate()) { #>
 +                            HRESULT hrT = hrInner;
-+                            // Paste evt.PathStep.CodeGen().PathExpression (of type <#=evt.PathStep.CodeGen().GetType().FullName#>)
 +<#+             PushIndent(Indent.SevenTabs);#>
-+<#=evt.PathStep.CodeGen().PathExpression#>;
++<#=pathStepGen.PathExpression#>;
 +<#+             PopIndent();#>
 +                            hrInner = hrT;
 +<#+         } else { #>
-+                            HowToHandleThisPleaseTell<#="aaaaaa"/*evt.PathStep.CodeGen().PathExpression*/#>(<#="aaaaaa"/*evt.Parameters.ForCall()*/#>); // TODO IS THIS INVOKING AN EVENT SOURCE?
++                            HRESULT hrT = hrInner;
++<#+             PushIndent(Indent.SevenTabs);#>
++<#=pathStepGen.PathExpression#>;
++<#+             PopIndent();#>
++                            hrInner = hrT;
++                            if (SUCCEEDED(hrInner))
++                            {
++                                hrInner = <#=pathStepGen.PathExpression.WRLOutVarName()#>->Invoke(<#=evt.Parameters.ForCall()#>);
++                            }
 +<#+         }#>
 +
 +                            return hrInner;
@@ -808,7 +929,15 @@ index 0000000..243d467
 +<#+         foreach (var ba in element.BindAssignments.Where(ba => !(ba is BoundLoadAssignment))) #>
 +<#+         { #>
 +<#+             PushIndent(Indent.TwoTabs); #>
-+<#+             Output_Binding_SetValue_Non_Function_Call(ba, ba.ObjectDeferredAssignmentCodeName, false); #>
++<#+             LanguageSpecificString objectDeferredAssignmentCodeName = ba.ObjectDeferredAssignmentCodeName; #>
++<#+             LanguageSpecificString objectDeferredAssignmentCodeNameWrapped = new LanguageSpecificString(
++                    objectDeferredAssignmentCodeName.CppCXName,
++                    objectDeferredAssignmentCodeName.CppWinRTName,
++                    objectDeferredAssignmentCodeName.CSharpName,
++                    objectDeferredAssignmentCodeName.VBName,
++                    wrl: () => $"{ba.MemberType.WRLNameNonSmartVar()} _BindAssignmentBase_ObjectDeferredAssignmentCodeName_Out = {ba.MemberType.WRLGetSmartVar(objectDeferredAssignmentCodeName.WRLName())};",
++                    wrlOutVar: () => "_BindAssignmentBase_ObjectDeferredAssignmentCodeName_Out"); #>
++<#+             Output_Binding_SetValue_Non_Function_Call(ba, objectDeferredAssignmentCodeNameWrapped, false); #>
 +<#+             PopIndent(); #>
 +<#+         } #>
 +<#+     }#>
@@ -833,13 +962,8 @@ index 0000000..243d467
 +<#+         } #>
 +<#+     } #>
 +<#+     if (element.CanBeInstantiatedLater && element.HasRootNamedElementStep) { #>
-+                    static_assert(false, "This scenario has not been tested yet.");
-+                    this->UnloadableBindingSourcesToUpdate.push_back([this]()
-+                    {
-+<#+         PushIndent(Indent.TwoTabs); #>
-+<#+         Output_Custom_Update_Call(element.RootNamedElementStep, element.RootNamedElementStep.CodeGen().PathExpression.WRLName(), "TODO", KnownStrings.NotPhased);#>
-+<#+         PopIndent(); #>
-+                    });
++                    hr = this->UnloadableBindingSourcesToUpdate.Add(&<#=element.BindUniverse.BindingsClassName#>::_Connect_UnloadableBindingSourcesToUpdate_<#=element.ObjectCodeName#>);
++                    if (FAILED(hr)) return hr;
 +<#+     } #>
 +<#+    if (element.TryGetValidationContextStep(out PropertyStep validationStep) && ProjectInfo.IsInputValidationEnabled && ProjectInfo.EnableDefaultValidationContextGeneration) #>
 +<#+    { #>
@@ -877,7 +1001,7 @@ index 0000000..243d467
 +<#+     if (ba.NeedsLostFocusForTwoWay) { #>
 +                hrT = hr;
 +<#+     PushIndent(Indent.FourTabs);#>
-+<#=ba.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", "_ConnectionIdElement_Reference", "pUIElement")#>
++<#=ba.ConnectionIdElement.Type.WRLDeclareQIIfNeeded($"{Projection(DUI.NamespaceWindowsUIXaml)}::IUIElement", ba.ConnectionIdElement.ReferenceExpression.WRLOutVarName(), "pUIElement")#>
 +<#+     PopIndent();#>
 +                hr = hrT;
 +                if (FAILED(hr)) return hr;
@@ -886,7 +1010,7 @@ index 0000000..243d467
 +                {
 +<#+     } else { #>
 +                ::Microsoft::WRL::ComPtr<ABI::Windows::UI::Xaml::IDependencyObject2> dependencyObject2;
-+                hr = _ConnectionIdElement_Reference->QueryInterface(IID_PPV_ARGS(&dependencyObject2));
++                hr = <#=ba.ConnectionIdElement.ReferenceExpression.WRLOutVarName()#>->QueryInterface(IID_PPV_ARGS(&dependencyObject2));
 +                if (FAILED(hr)) return hr;
 +
 +<#+         if (DomHelper.IsLocalType(ba.MemberDeclaringType)) { #>
@@ -894,7 +1018,7 @@ index 0000000..243d467
 +                hr = <#=ba.MemberDeclaringType.WRLName()#>::get_<#=ba.MemberName#>Property(&dependencyProperty);
 +                if (FAILED(hr)) return hr;
 +<#+         } else { #>
-+                ::Microsoft::WRL::ComPtr<<#=ba.MemberDeclaringType.WRLNameInterface()#>Statics> memberDeclaringStatics;
++                ::Microsoft::WRL::ComPtr<<#=ba.MemberDeclaringType.WRLNameStaticInterfaceSpecific("get_" + ba.MemberName + "Property")#>> memberDeclaringStatics;
 +                hr = ::ABI::Windows::Foundation::GetActivationFactory(
 +                    ::Microsoft::WRL::Wrappers::HStringReference(<#=ba.MemberDeclaringType.ToRuntimeClassNameConstant()#>).Get(),
 +                    &memberDeclaringStatics);
@@ -1147,29 +1271,112 @@ index 0000000..243d467
 +<#+         PushIndent(); #>
 +<#+     Output_ApiInformationCall_Push(ba.ApiInformation, Indent.OneTab); #>
 +<#+     if (ba is BoundLoadAssignment) { #>
-+            static_assert(false, "This scenario has not been tested yet.");
++            HRESULT hrT;
++<#+         PushIndent(Indent.ThreeTabs); #>
++<#=value#>
++<#+         PopIndent(); #>
++            hr = hrT;
++            if (FAILED(hr)) return hr;
++
 +<#+         if (includeDeferredSet) { #>
-+            <#=ba.ObjectDeferredAssignmentCodeName#> = <#=value.WRLName()#>;
++            hrT = hr;
++<#+         PushIndent(Indent.ThreeTabs); #>
++<#=ba.MemberType.WRLAssignSmartVar(ba.ObjectDeferredAssignmentCodeName.WRLName(), value.WRLOutVarName())#>
++<#+         PopIndent(); #>
++            hr = hrT;
++            if (FAILED(hr)) return hr;
 +
 +<#+         }#>
-+            if (<#=value.WRLName()#>)
++            if (<#=value.WRLOutVarName()#>)
 +            {
 +<#+         if (ba.BindUniverse.IsFileRoot) { #>
-+                GetDataRoot().FindName(L"<#=element.ElementName#>");
++                <#=ba.BindUniverse.DataRootType.WRLDeclareSmartVar("spDataRoot")#>
++                hr = GetDataRoot(<#=ba.BindUniverse.DataRootType.WRLOutParam("spDataRoot")#>);
++                if (FAILED(hr)) return hr;
++
++                hrT = hr;
++<#+             PushIndent(Indent.FourTabs);#>
++<#=ba.BindUniverse.RootElement.Type.WRLDeclareQIIfNeeded(Projection(DUI.NamespaceWindowsUIXaml) + "::IFrameworkElement", "spDataRoot", "pRootFrameworkElement")#>
++<#+             PopIndent();#>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
 +<#+         } else { #>
-+                <#=ba.BindUniverse.RootElement.ReferenceExpression#>.FindName(L"<#=element.ElementName#>");
++                hrT = hr;
++<#+             PushIndent(Indent.FourTabs);#>
++<#=ba.BindUniverse.RootElement.ReferenceExpression#>
++<#+             PopIndent();#>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++
++                hrT = hr;
++<#+             PushIndent(Indent.FourTabs);#>
++<#=ba.BindUniverse.RootElement.Type.WRLDeclareQIIfNeeded(Projection(DUI.NamespaceWindowsUIXaml) + "::IFrameworkElement", ba.BindUniverse.RootElement.ReferenceExpression.WRLOutVarName(), "pRootFrameworkElement")#>
++<#+             PopIndent();#>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
 +<#+         }#>
++
++                HSTRING_HEADER strNameHeader;
++                HSTRING strName;
++                hr = WindowsCreateStringReference(L"<#=element.ElementName#>", (UINT32)wcslen(L"<#=element.ElementName#>"), &strNameHeader, &strName);
++                if (FAILED(hr)) return hr;
++
++                ::Microsoft::WRL::ComPtr<IInspectable> spFoundIgnored;
++                hr = pRootFrameworkElement->FindName(strName, &spFoundIgnored);
++                if (FAILED(hr)) return hr;
 +            }
 +            else
 +            {
 +<#+         if (ba.BindUniverse.IsFileRoot) { #>
-+                ::winrt::get_self<<#=ba.BindUniverse.DataRootType.CppWinRTLocalElseRef()#>>(GetDataRoot())->UnloadObject(<#=element.ReferenceExpression#>);
++                <#=ba.BindUniverse.DataRootType.WRLDeclareSmartVar("spDataRoot")#>
++                hr = GetDataRoot(<#=ba.BindUniverse.DataRootType.WRLOutParam("spDataRoot")#>);
++                if (FAILED(hr)) return hr;
++
++                hrT = hr;
++<#+         PushIndent(Indent.FourTabs); #>
++<#=element.ReferenceExpression#>
++<#+         PopIndent(); #>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++
++                hrT = hr;
++<#+         PushIndent(Indent.FourTabs); #>
++<#=element.Type.WRLDeclareQIIfNeeded(Projection(DUI.NamespaceWindowsUIXaml) + "::IDependencyObject", element.ReferenceExpression.WRLOutVarName(), "pElementDO")#>
++<#+         PopIndent(); #>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++
++                hr = static_cast<<#=ba.BindUniverse.DataRootType.WRLName().NoABIPrefix()#>*>(spDataRoot.Get())->UnloadObject(pElementDO);
++                if (FAILED(hr)) return hr;
 +<#+         } else { #>
-+                if (<#=element.ReferenceExpression#>) 
++                hrT = hr;
++<#+         PushIndent(Indent.FourTabs); #>
++<#=element.ReferenceExpression#>
++<#+         PopIndent(); #>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++
++                if (<#=element.ReferenceExpression.WRLOutVarName()#>)
 +                {
-+                    <#=Projection(DUI.NamespaceWindowsUIXamlMarkup)#>::XamlMarkupHelper::UnloadObject(<#=element.ReferenceExpression#>);
++                    ::Microsoft::WRL::ComPtr<ABI::Windows::UI::Xaml::Markup::IXamlMarkupHelperStatics> spXamlMarkupHelperStatics;
++                    hr = ::ABI::Windows::Foundation::GetActivationFactory(
++                        ::Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_UI_Xaml_Markup_XamlMarkupHelper).Get(),
++                        &spXamlMarkupHelperStatics);
++                    if (FAILED(hr)) return hr;
++
++                    hrT = hr;
++<#+         PushIndent(Indent.FiveTabs); #>
++<#=element.Type.WRLDeclareQIIfNeeded(Projection(DUI.NamespaceWindowsUIXaml) + "::IDependencyObject", element.ReferenceExpression.WRLOutVarName(), "pElementDO")#>
++<#+         PopIndent(); #>
++                    hr = hrT;
++                    if (FAILED(hr)) return hr;
++
++                    hr = spXamlMarkupHelperStatics->UnloadObject(pElementDO);
++                    if (FAILED(hr)) return hr;
 +                }
-+                DisconnectUnloadedObject(<#=element.ConnectionId#>);
++
++                hr = DisconnectUnloadedObject(<#=element.ConnectionId#>);
++                if (FAILED(hr)) return hr;
 +<#+         }#>
 +            }
 +<#+     } else { #>
@@ -1178,22 +1385,20 @@ index 0000000..243d467
 +            {
 +<#+             PushIndent();#>
 +<#+         }#>
-+            HRESULT hrT;
-+
-+<#+         if (ba.NeedsBox) {#>
-+            ::Microsoft::WRL::ComPtr<::IInspectable> spBoxed;
-+            hr = TroleBoxer::BoxValue(<#=value.WRLName()#>, &spBoxed);
-+            if (FAILED(hr)) return hr;
-+
-+            ::IInspectable* potentiallyBoxedValue = spBoxed.Get();
-+<#+         } else {#>
-+            hrT = hr;
++            HRESULT hrT = hr;
 +<#+         PushIndent(Indent.ThreeTabs);#>
-+<#=value.WRLName()#>
++<#=value#>
 +<#+         PopIndent();#>
 +            hr = hrT;
 +            if (FAILED(hr)) return hr;
 +
++<#+         if (ba.NeedsBox) {#>
++            ::Microsoft::WRL::ComPtr<::IInspectable> spBoxed;
++            hr = TroleBoxer::BoxValue(<#=value.WRLOutVarName()#>, &spBoxed);
++            if (FAILED(hr)) return hr;
++
++            ::IInspectable* potentiallyBoxedValue = spBoxed.Get();
++<#+         } else {#>
 +            <#=ba.MemberType.WRLNameNonSmartVar()#> potentiallyBoxedValue = <#=value.WRLOutVarName()#>;
 +<#+         }#>
 +
@@ -1206,7 +1411,7 @@ index 0000000..243d467
 +
 +            hrT = hr;
 +<#+         PushIndent(Indent.ThreeTabs);#>
-+<#=element.Type.WRLDeclareQIIfNeeded(ba.MemberTargetType.WRLNameInterface(), "_ConnectionIdElement_Reference", "_ConnectionIdElement_ReferenceP")#>
++<#=element.Type.WRLDeclareQIIfNeeded(ba.MemberTargetType.WRLNameInterface(), element.ReferenceExpression.WRLOutVarName(), "_ConnectionIdElement_ReferenceP")#>
 +<#+         PopIndent();#>
 +            hr = hrT;
 +            if (FAILED(hr)) return hr;
@@ -1223,8 +1428,19 @@ index 0000000..243d467
 +<#+             if (includeDeferredSet && element.CanBeInstantiatedLater) { #>
 +            else
 +            {
-+                static_assert(false, "This scenario has not been tested yet.");
-+                <#=ba.ObjectDeferredAssignmentCodeName#> = <#=value.WRLName()#>;
++                HRESULT hrT = hr;
++<#+                 PushIndent(Indent.FourTabs);#>
++<#=value#>
++<#+                 PopIndent();#>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
++
++                hrT = hr;
++<#+                 PushIndent(Indent.FourTabs); #>
++<#=ba.MemberType.WRLAssignSmartVar(ba.ObjectDeferredAssignmentCodeName.WRLName(), value.WRLOutVarName())#>
++<#+                 PopIndent(); #>
++                hr = hrT;
++                if (FAILED(hr)) return hr;
 +            }
 +<#+             }#>
 +<#+         }#>
@@ -1555,7 +1771,7 @@ index 0000000..243d467
 +                HRESULT hrT = hr;
 +<#+         PushIndent(Indent.FourTabs);#>
 +<#+         LanguageSpecificString stringToNullValue = ba.MemberType.GetStringToThing("targetNullValue");#>
-+<#=stringToNullValue.WRLName()#>
++<#=stringToNullValue#>
 +<#+         PopIndent();#>
 +                hr = hrT;
 +                if (SUCCEEDED(hr))

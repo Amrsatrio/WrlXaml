@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
-index 4ac168d..8e038a5 100644
+index 4ac168d..90d19fa 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/FieldStepCodeGenerator.cs
 @@ -8,9 +8,15 @@ internal class FieldStepCodeGenerator : PropertyStepCodeGenerator<FieldStep>
@@ -16,12 +16,12 @@ index 4ac168d..8e038a5 100644
 +				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.FieldName,
 +				() => parentPathExpression.CSharpName() + "." + Instance.FieldName,
 +				() => parentPathExpression.VBName() + "." + Instance.FieldName,
-+				wrl: () => throw new System.NotSupportedException("Impossible to make field paths without projections. Find another way without using PathExpression."),
++				wrl: () => throw new System.NotSupportedException("Impossible to define non-property fields in an IDL."),
 +				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(PathExpression), "Out"));
  		}
  	}
  
-@@ -18,9 +24,13 @@ internal class FieldStepCodeGenerator : PropertyStepCodeGenerator<FieldStep>
+@@ -18,9 +24,15 @@ internal class FieldStepCodeGenerator : PropertyStepCodeGenerator<FieldStep>
  	{
  		get
  		{
@@ -34,7 +34,9 @@ index 4ac168d..8e038a5 100644
 +				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppCXName() : "obj") + parentMemberAccessOperator.CppCXName() + Instance.FieldName,
 +				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CppWinRTName() : "obj") + parentMemberAccessOperator.CppWinRTName() + Instance.FieldName,
 +				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.CSharpName() : "obj") + "." + Instance.FieldName,
-+				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + Instance.FieldName);
++				() => ((Instance.Parent is StaticRootStep) ? parentPathExpression.VBName() : "obj") + "." + Instance.FieldName,
++				wrl: () => throw new System.NotSupportedException("Impossible to define non-property fields in an IDL."),
++				wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
  		}
  	}
  }

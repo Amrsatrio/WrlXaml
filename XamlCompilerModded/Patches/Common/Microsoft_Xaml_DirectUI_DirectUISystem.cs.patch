@@ -1,0 +1,38 @@
+diff --git a/Microsoft/Xaml/DirectUI/DirectUISystem.cs b/Microsoft/Xaml/DirectUI/DirectUISystem.cs
+index f169f6b..798cc98 100644
+--- a/Microsoft/Xaml/DirectUI/DirectUISystem.cs
++++ b/Microsoft/Xaml/DirectUI/DirectUISystem.cs
+@@ -221,6 +221,24 @@ internal class DirectUISystem
+ 		_validationCommand = new Lazy<Type>(() => DirectUISystemGetType("Windows.UI.Xaml.Controls.InputValidationCommand"));
+ 	}
+ 
++	// @MOD Copied from DirectUISchemaContext
++	private Type EnsureIsLmrType(Type type)
++	{
++		Type type2 = type as Microsoft.MetadataReader.MetadataOnlyCommonType;
++		if (type2 == null)
++		{
++			foreach (XamlTypeUniverse xamlTypeUniverse in XamlTypeUniverses)
++			{
++				type2 = xamlTypeUniverse.FindType(type.FullName);
++				if (type2 != null)
++				{
++					break;
++				}
++			}
++		}
++		return type2;
++	}
++
+ 	internal Type DirectUISystemGetType(string typeName)
+ 	{
+ 		Type type = null;
+@@ -229,6 +247,8 @@ internal class DirectUISystem
+ 			type = directUIBaseAssembly.GetType(typeName);
+ 			if (type != null && type.IsPublic)
+ 			{
++				// @MOD Ensure RuntimeAssembly types are mapped to MetadataOnlyAssembly types
++				type = EnsureIsLmrType(type);
+ 				break;
+ 			}
+ 		}

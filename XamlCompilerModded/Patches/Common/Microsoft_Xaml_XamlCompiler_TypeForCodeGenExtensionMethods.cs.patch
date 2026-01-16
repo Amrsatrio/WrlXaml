@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
-index f17c72c..4441e5f 100644
+index f17c72c..272f013 100644
 --- a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
 +++ b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
 @@ -5,6 +5,7 @@ using System.Reflection;
@@ -10,7 +10,7 @@ index f17c72c..4441e5f 100644
  
  namespace Microsoft.Xaml.XamlCompiler;
  
-@@ -52,6 +53,235 @@ public static class TypeForCodeGenExtensionMethods
+@@ -52,6 +53,259 @@ public static class TypeForCodeGenExtensionMethods
  		return type.GetTypeForCodeGen().MemberFriendlyName;
  	}
  
@@ -99,6 +99,25 @@ index f17c72c..4441e5f 100644
 +		return type.UnderlyingType.IsValueType ? varName : varName + ".Get()";
 +	}
 +
++	public static string WRLAssignSmartVar(this XamlType type, string varName, string valueExpr)
++	{
++		if (type.UnderlyingType.IsValueType)
++		{
++			// No smart wrappers, just assign
++			return $"{varName} = {valueExpr};";
++		}
++		else if (type.WRLNameInterface() == "HSTRING")
++		{
++			// HSTRING uses Set
++			return $"hr = {varName}.Set({valueExpr});";
++		}
++		else
++		{
++			// ComPtr uses operator=
++			return $"{varName} = {valueExpr};";
++		}
++	}
++
 +	public static string WRLDeclareQIIfNeeded(this XamlType type, string targetType, string inputExpr, string outputVarName, bool nullable = false, bool forceQI = false)
 +	{
 +		if (forceQI || type.WRLNameInterface() != targetType)
@@ -159,6 +178,11 @@ index f17c72c..4441e5f 100644
 +
 +	public static Type GetDeclaringInterfaceType(this Type classType, MethodInfo method)
 +	{
++		if (classType.IsInterface && method.DeclaringType == classType)
++		{
++			return classType;
++		}
++
 +		var ifacesToSearch = classType.GetInterfaces().AsEnumerable();
 +		ifacesToSearch = ifacesToSearch.Except(classType.GetInterfaceListOfAttribute("StaticAttribute"));
 +		ifacesToSearch = ifacesToSearch.Except(classType.GetInterfaceListOfAttribute("ComposableAttribute"));
@@ -246,7 +270,7 @@ index f17c72c..4441e5f 100644
  	public static string VBName(this XamlType type)
  	{
  		return type.GetTypeForCodeGen().FullName.VBName();
-@@ -93,9 +323,10 @@ public static class TypeForCodeGenExtensionMethods
+@@ -93,9 +347,10 @@ public static class TypeForCodeGenExtensionMethods
  	public static LanguageSpecificString Declaration(this IEnumerable<Parameter> parameters)
  	{
  		IEnumerable<string> cppDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "CppWinRT", globalized: true) + " const& " + p.Name);

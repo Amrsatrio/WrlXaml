@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
-index f44b4da..4b1c4b5 100644
+index f44b4da..13b49bd 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -103,7 +103,7 @@ index f44b4da..4b1c4b5 100644
 +// BEGIN ArrayIndexStepCodeGenerator.PathSetExpression
 +if (SUCCEEDED(hrT))
 +{
-+{{parentPathExpression.WRLName().WRL_Indent(1)}}
++{{(Instance.Parent.NeedsCheckForNull ? "/* Already null-checked */" : parentPathExpression.WRLName()).WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
 +        ::Microsoft::WRL::ComPtr<::ABI::Windows::Foundation::Collections::IVector<{{Instance.ValueType.WRLNameTypeArg()}}>> {{n_vector}};
