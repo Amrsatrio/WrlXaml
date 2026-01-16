@@ -1,8 +1,14 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
-index 789912d..804797b 100644
+index 789912d..0d6e8ac 100644
 --- a/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
 +++ b/Microsoft/Xaml/XamlCompiler/ConnectionIdElement.cs
-@@ -6,6 +6,7 @@ using System.Xaml;
+@@ -1,11 +1,13 @@
+ using System;
+ using System.Collections.Generic;
+ using System.Linq;
++using System.Reflection;
+ using System.Windows.Markup;
+ using System.Xaml;
  using Microsoft.UI.Xaml.Markup.Compiler;
  using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
  using Microsoft.Xaml.DirectUI;
@@ -10,14 +16,13 @@ index 789912d..804797b 100644
  using Microsoft.Xaml.XamlDom;
  
  namespace Microsoft.Xaml.XamlCompiler;
-@@ -268,11 +269,48 @@ internal class ConnectionIdElement
+@@ -268,11 +270,48 @@ internal class ConnectionIdElement
  	{
  		get
  		{
 -			if (!IsWeakRef)
 +			if (IsWeakRef)
- 			{
--				return new LanguageSpecificString(() => "this->" + ObjectCodeName, () => ObjectCodeName ?? "", () => "this." + ObjectCodeName, () => "Me." + ObjectCodeName);
++			{
 +				return new LanguageSpecificString(
 +					() => "this->" + ObjectCodeName + ".Resolve<" + Type.CppCXName(IncludeHatIfApplicable: false) + ">()",
 +					() => "this->" + ObjectCodeName + ".get()",
@@ -41,7 +46,8 @@ index 789912d..804797b 100644
 +					wrlOutVar: () => "_ConnectionIdElement_Reference");
 +			}
 +			else
-+			{
+ 			{
+-				return new LanguageSpecificString(() => "this->" + ObjectCodeName, () => ObjectCodeName ?? "", () => "this." + ObjectCodeName, () => "Me." + ObjectCodeName);
 +				return new LanguageSpecificString(
 +					() => "this->" + ObjectCodeName,
 +					() => ObjectCodeName ?? "",
@@ -62,13 +68,21 @@ index 789912d..804797b 100644
  		}
  	}
  
-@@ -407,10 +445,82 @@ internal class ConnectionIdElement
+@@ -407,10 +446,90 @@ internal class ConnectionIdElement
  
  	public LanguageSpecificString GetMemberGetExpression(BindAssignmentBase bindAssignment)
  	{
 -		if (!bindAssignment.IsAttachable)
 +		if (bindAssignment.IsAttachable)
 +		{
++			// Copied from AttachedPropertyStepCodeGenerator
++			string WRL_GetFirstArgTypeName(bool forSetter)
++			{
++				string methodName = forSetter ? "Set" + bindAssignment.MemberName : "Get" + bindAssignment.MemberName;
++				MethodInfo method = bindAssignment.MemberDeclaringType.UnderlyingType.GetMethod(methodName);
++				ParameterInfo[] parameters = method?.GetParameters() ?? throw new InvalidOperationException("Could not find method " + methodName + " on type " + bindAssignment.MemberDeclaringType.UnderlyingType.FullName);
++				return bindAssignment.MemberDeclaringType.SchemaContext.GetXamlType(parameters[0].ParameterType).WRLNameInterface();
++			}
 +			return new LanguageSpecificString(
 +				() => $"{bindAssignment.MemberDeclaringType.CppCXName(IncludeHatIfApplicable: false)}::Get{bindAssignment.MemberName}({ReferenceExpression.CppCXName()})",
 +				() => bindAssignment.MemberDeclaringType.CppWinRTName() + "::Get" + bindAssignment.MemberName + "(" + ReferenceExpression.CppWinRTName() + ")",
@@ -95,7 +109,7 @@ index 789912d..804797b 100644
 +            &memberDeclaringStatics);
 +        if (SUCCEEDED(hrT))
 +        {
-+{{Type.WRLDeclareQIIfNeeded(bindAssignment.MemberDeclaringType.WRLNameInterface(), ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(3)}}
++{{Type.WRLDeclareQIIfNeeded(WRL_GetFirstArgTypeName(false), ReferenceExpression.WRLOutVarName(), n_temp).WRL_Indent(3)}}
 +            if (SUCCEEDED(hrT))
 +            {
 +                hrT = memberDeclaringStatics->Get{{bindAssignment.MemberName}}({{n_temp}}, {{bindAssignment.MemberType.WRLOutParam(n_valueOutputSmart)}});

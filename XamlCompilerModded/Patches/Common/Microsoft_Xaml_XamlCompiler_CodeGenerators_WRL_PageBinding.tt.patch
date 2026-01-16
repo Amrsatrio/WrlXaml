@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 new file mode 100644
-index 0000000..149387f
+index 0000000..25a8c37
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
-@@ -0,0 +1,1842 @@
+@@ -0,0 +1,1844 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Collections.Generic" #>
 +<#@ import namespace="System.Linq" #>
@@ -942,9 +942,11 @@ index 0000000..149387f
 +<#+         } #>
 +<#+     }#>
 +<#+     foreach (var ba in element.BindAssignments.Where(bindAssignment => bindAssignment.IsTrackingTarget)) { #>
-+<#+         PushIndent();#>
++                    {
++<#+         PushIndent(Indent.TwoTabs);#>
 +<#+         Output_Connect_TwoWayBinding(ba);#>
 +<#+         PopIndent();#>
++                    }
 +<#+     }#>
 +<#+     Output_ApiInformationCall_Pop(element.ApiInformation, Indent.ThreeTabs); #>
 +<#+     } #>
