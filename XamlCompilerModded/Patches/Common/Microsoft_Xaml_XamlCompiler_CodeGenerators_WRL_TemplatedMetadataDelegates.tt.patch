@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
 new file mode 100644
-index 0000000..ba76a64
+index 0000000..eb76870
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
-@@ -0,0 +1,456 @@
+@@ -0,0 +1,457 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<TypeInfoDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="Microsoft.Xaml.DirectUI" #>
 +template <const wchar_t* className>
@@ -309,7 +309,8 @@ index 0000000..ba76a64
 +        hr = pInstance->get_<#=name#>(&pValue);
 +        if (SUCCEEDED(hr))
 +        {
-+            *ppMember = pValue; // Transfer ownership to out param
++<#      /* @Note: Delegate types inherit IUnknown not IInspectable */ #>
++            *reinterpret_cast<::IUnknown**>(ppMember) = pValue; // Transfer ownership to out param
 +        }
 +
 +        pInstance->Release();
