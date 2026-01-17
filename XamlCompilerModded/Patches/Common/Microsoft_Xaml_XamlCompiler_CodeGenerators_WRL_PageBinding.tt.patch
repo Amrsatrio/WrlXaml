@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 new file mode 100644
-index 0000000..25a8c37
+index 0000000..f7f44bb
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
-@@ -0,0 +1,1844 @@
+@@ -0,0 +1,1846 @@
 +﻿<#@ template language="C#" inherits="WRL_CodeGenerator<PageDefinition>" visibility="internal" linePragmas="false"#>
 +<#@ import namespace="System.Collections.Generic" #>
 +<#@ import namespace="System.Linq" #>
@@ -1653,6 +1653,8 @@ index 0000000..25a8c37
 +            }
 +            while (<#=string.Join(" || ", conditions)#>);
 +<#+     } #>
++
++            return hr;
 +        }
 +        // END Output_CompleteUpdate()
 +<#+ }#>

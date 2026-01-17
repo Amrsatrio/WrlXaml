@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
 new file mode 100644
-index 0000000..8bd61e0
+index 0000000..f823e36
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,130 @@
 +using System;
 +using System.Collections.Generic;
 +using System.Linq;
@@ -45,9 +45,14 @@ index 0000000..8bd61e0
 +
 +	protected string GetBindingTrackingClassName(BindUniverse bindUniverse, XamlClassCodeInfo codeInfo)
 +	{
-+		return Colonize(bindUniverse.NeedsCppBindingTrackingClass ?
-+			bindUniverse.BindingsTrackingClassName :
-+			Colonize($"{ProjectInfo.RootNamespace}::XamlBindingTrackingBase"));
++		if (bindUniverse.NeedsCppBindingTrackingClass)
++		{
++			return Colonize(bindUniverse.BindingsTrackingClassName);
++		}
++		else
++		{
++			return $"::Microsoft::WRL::RuntimeClass<::Microsoft::WRL::RuntimeClassFlags<::Microsoft::WRL::ClassicCom>, {Colonize($"{ProjectInfo.RootNamespace}::XamlBindingTrackingBase")}>";
++		}
 +	}
 +
 +	public IEnumerable<string> GetCacheDeclarations(BindUniverse bindUniverse)
