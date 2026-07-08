@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 new file mode 100644
-index 0000000..f7f44bb
+index 0000000..4e9d03e
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PageBinding.tt
 @@ -0,0 +1,1846 @@
@@ -100,7 +100,7 @@ index 0000000..f7f44bb
 +                    {
 +<#              foreach (var ba in element.BindAssignments.Where(ba => ba.HasDeferredValueProxy)) { #>
 +                        {
-+                            HRESULT hrT;
++                            HRESULT hrT = hr;
 +<#                  PushIndent(Indent.SevenTabs); #>
 +<#                  LanguageSpecificString getMemberGetExpression = element.GetMemberGetExpression(ba); #>
 +<#=getMemberGetExpression#>
@@ -1254,7 +1254,7 @@ index 0000000..f7f44bb
 +            // BEGIN Output_Binding_SetValue(<#=bindAssignment.CodeName#>, <#=isFunctionResult#>)
 +<#+         if (bindAssignment.PathStep is FunctionStep && !isFunctionResult)#>
 +<#+         {#>
-+            hr = PendingFunctionBindings.AddItem(L"<#=bindAssignment.PathStep.CodeName#>", &<#=bindAssignment.BindUniverse.BindingsClassName#>::Invoke_<#=bindAssignment.PathStep.CodeName#>);
++            hr = PendingFunctionBindings.SetItem(L"<#=bindAssignment.PathStep.CodeName#>", &<#=bindAssignment.BindUniverse.BindingsClassName#>::Invoke_<#=bindAssignment.PathStep.CodeName#>);
 +<#+         }#>
 +<#+         else#>
 +<#+         {#>

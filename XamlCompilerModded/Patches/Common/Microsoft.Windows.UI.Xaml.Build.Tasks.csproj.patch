@@ -1,5 +1,5 @@
 diff --git a/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj b/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
-index 572f39c..c9e3111 100644
+index 572f39c..b24b64c 100644
 --- a/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
 +++ b/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
 @@ -3,6 +3,8 @@
@@ -184,6 +184,6 @@ index 572f39c..c9e3111 100644
 +      <Reference Remove="System.Xaml" />
 +    </ItemGroup>
 +  </Target>
-+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets" />
++  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v18.0\TextTemplating\Microsoft.TextTemplating.targets" />
  </Project>
 \ No newline at end of file
