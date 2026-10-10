@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
-index b75b2f0..f4d857e 100644
+index 9952be0..b45732e 100644
 --- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
 +++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/XamlTypeExtensions.cs
 @@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Markup.Compiler;
@@ -29,7 +29,7 @@ index b75b2f0..f4d857e 100644
  			new Dictionary<string, LanguageSpecificString> { 
  			{
  				"Windows.UI.Xaml.Visibility",
--				new LanguageSpecificString(() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed", delegate
+-				new LanguageSpecificString(() => "{0} && {0}->Value ? ::Windows::UI::Xaml::Visibility::Visible : ::Windows::UI::Xaml::Visibility::Collapsed", () =>
 -				{
 -					throw new NotImplementedException("Unexpected System.Nullable<Boolean> to Visibility");
 -				}, () => "({0} ?? false) ? global::Windows.UI.Xaml.Visibility.Visible : global::Windows.UI.Xaml.Visibility.Collapsed", () => "If(If({0}, False), Global.Windows.UI.Xaml.Visibility.Visible, Global.Windows.UI.Xaml.Visibility.Collapsed)")
@@ -286,7 +286,7 @@ index b75b2f0..f4d857e 100644
 +            hrT = memberDeclaringStatics->{{createFromString.MethodInfo.Name}}(strValueName, {{retType.WRLOutParam(n_createFromStringResult)}});
 +            if (SUCCEEDED(hrT))
 +            {
-+                hrT = TroleBoxer::UnboxValue({{retType.WRLGetSmartVar(n_createFromStringResult)}}, {{type.WRLOutParam(n_outputSmart)}});
++                hrT = SimpleBoxer::UnboxValue({{retType.WRLGetSmartVar(n_createFromStringResult)}}, {{type.WRLOutParam(n_outputSmart)}});
 +            }
 +        }
 +    }
@@ -365,7 +365,7 @@ index b75b2f0..f4d857e 100644
 +            if (SUCCEEDED(hrT))
 +            {
 +                ::Microsoft::WRL::ComPtr<::IInspectable> spValueName;
-+                hrT = TroleBoxer::BoxValue(strValueName, &spValueName);
++                hrT = SimpleBoxer::BoxValue(strValueName, &spValueName);
 +                if (SUCCEEDED(hrT))
 +                {
 +                    hrT = {{n_xamlBindingHelperStatics}}->ConvertValue(
@@ -392,7 +392,7 @@ index b75b2f0..f4d857e 100644
 +{{lss.WRLName().WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = TroleBoxer::UnboxValue({{lss.WRLOutVarName()}}, {{type.WRLOutParam(n_outputSmart)}});
++        hrT = SimpleBoxer::UnboxValue({{lss.WRLOutVarName()}}, {{type.WRLOutParam(n_outputSmart)}});
 +    }
 +}
 +{{type.WRLNameNonSmartVar()}} {{n_output}} = {{type.WRLGetSmartVar(n_outputSmart)}};
@@ -441,7 +441,7 @@ index b75b2f0..f4d857e 100644
 +{{expression.WRLName().WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++        hrT = SimpleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
 +    }
 +}
 +if (SUCCEEDED(hrT))
@@ -477,7 +477,7 @@ index b75b2f0..f4d857e 100644
 +{{expression.WRLName().WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++        hrT = SimpleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
 +    }
 +}
 +if (SUCCEEDED(hrT))
@@ -542,7 +542,7 @@ index b75b2f0..f4d857e 100644
 +{{expression.WRLName().WRL_Indent(1)}}
 +    if (SUCCEEDED(hrT))
 +    {
-+        hrT = TroleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
++        hrT = SimpleStringer::GenericToString({{expression.WRLOutVarName()}}, &{{n_tempBSTR}});
 +    }
 +}
 +if (SUCCEEDED(hrT))

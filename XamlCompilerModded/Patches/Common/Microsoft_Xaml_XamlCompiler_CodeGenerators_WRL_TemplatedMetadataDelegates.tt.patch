@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
 new file mode 100644
-index 0000000..eb76870
+index 0000000..befc0b3
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TemplatedMetadataDelegates.tt
 @@ -0,0 +1,457 @@
@@ -69,7 +69,7 @@ index 0000000..eb76870
 +        else
 +        {
 +            TItem unboxedValue = {};
-+            hr = TroleBoxer::UnboxValue(item, &unboxedValue);
++            hr = SimpleBoxer::UnboxValue(item, &unboxedValue);
 +            if (SUCCEEDED(hr))
 +            {
 +                hr = pVector->Append(unboxedValue);
@@ -114,7 +114,7 @@ index 0000000..eb76870
 +        }
 +        else
 +        {
-+            hr = TroleBoxer::UnboxValue(key, &finalKey);
++            hr = SimpleBoxer::UnboxValue(key, &finalKey);
 +        }
 +
 +        if (SUCCEEDED(hr))
@@ -130,7 +130,7 @@ index 0000000..eb76870
 +            }
 +            else
 +            {
-+                hr = TroleBoxer::UnboxValue(item, &finalItem);
++                hr = SimpleBoxer::UnboxValue(item, &finalItem);
 +            }
 +        }
 +
@@ -177,11 +177,11 @@ index 0000000..eb76870
 +    {
 +        if constexpr (std::is_enum_v<T>)
 +        {
-+            hr = TroleBoxer::BoxValue(static_cast<std::underlying_type_t<T>>(uint), pp);
++            hr = SimpleBoxer::BoxValue(static_cast<std::underlying_type_t<T>>(uint), pp);
 +        }
 +        else
 +        {
-+            hr = TroleBoxer::BoxValue(static_cast<T>(uint), pp);
++            hr = SimpleBoxer::BoxValue(static_cast<T>(uint), pp);
 +        }
 +    }
 +
@@ -209,7 +209,7 @@ index 0000000..eb76870
 +            hr = pStatics->Get<#=name#>(pTarget, &value);
 +            if (SUCCEEDED(hr))
 +            {
-+                hr = TroleBoxer::BoxValue(value, ppMember);
++                hr = SimpleBoxer::BoxValue(value, ppMember);
 +                if constexpr (std::is_base_of_v<IInspectable, TValue>)
 +                {
 +                    value->Release();
@@ -247,11 +247,11 @@ index 0000000..eb76870
 +        {
 +            if constexpr (std::is_enum_v<TValue>)
 +            {
-+                hr = TroleBoxer::BoxValue(static_cast<std::underlying_type_t<TValue>>(value), ppMember);
++                hr = SimpleBoxer::BoxValue(static_cast<std::underlying_type_t<TValue>>(value), ppMember);
 +            }
 +            else
 +            {
-+                hr = TroleBoxer::BoxValue(value, ppMember);
++                hr = SimpleBoxer::BoxValue(value, ppMember);
 +            }
 +        }
 +
@@ -278,7 +278,7 @@ index 0000000..eb76870
 +        if (SUCCEEDED(hr))
 +        {
 +            ::IInspectable* pBoxed = nullptr;
-+            hr = TroleBoxer::BoxValue(value, &pBoxed);
++            hr = SimpleBoxer::BoxValue(value, &pBoxed);
 +            if (SUCCEEDED(hr))
 +            {
 +                *ppMember = pBoxed; // Transfer ownership to out param
@@ -336,7 +336,7 @@ index 0000000..eb76870
 +        if (SUCCEEDED(hr))
 +        {
 +            TValue valueTypeValue = {};
-+            hr = TroleBoxer::UnboxValue(value, &valueTypeValue);
++            hr = SimpleBoxer::UnboxValue(value, &valueTypeValue);
 +            if (SUCCEEDED(hr))
 +            {
 +                hr = pStatics->Set<#=name#>(pTarget, valueTypeValue);
@@ -372,7 +372,7 @@ index 0000000..eb76870
 +    if (SUCCEEDED(hr))
 +    {
 +        std::underlying_type_t<TValue> enumValue = {};
-+        hr = TroleBoxer::UnboxValue(value, &enumValue);
++        hr = SimpleBoxer::UnboxValue(value, &enumValue);
 +        if (SUCCEEDED(hr))
 +        {
 +            hr = pInstance->put_<#=name#>(static_cast<TValue>(enumValue));
@@ -397,7 +397,7 @@ index 0000000..eb76870
 +    if (SUCCEEDED(hr))
 +    {
 +        TValue valueTypeValue = {};
-+        hr = TroleBoxer::UnboxValue(value, &valueTypeValue);
++        hr = SimpleBoxer::UnboxValue(value, &valueTypeValue);
 +        if (SUCCEEDED(hr))
 +        {
 +            hr = pInstance->put_<#=name#>(valueTypeValue);
@@ -422,7 +422,7 @@ index 0000000..eb76870
 +    if (SUCCEEDED(hr))
 +    {
 +        HSTRING hstr = nullptr;
-+        hr = TroleBoxer::UnboxValue(value, &hstr);
++        hr = SimpleBoxer::UnboxValue(value, &hstr);
 +        if (SUCCEEDED(hr))
 +        {
 +            hr = pInstance->put_<#=name#>(hstr);

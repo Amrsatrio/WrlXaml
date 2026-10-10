@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
-index f08288a..dc1a077 100644
+index 8730345..3bba6ee 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootStepCodeGenerator.cs
 @@ -1,4 +1,5 @@
@@ -8,12 +8,9 @@ index f08288a..dc1a077 100644
  
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
-@@ -8,11 +9,48 @@ internal class RootStepCodeGenerator : BindPathStepCodeGenerator<RootStep>
- 	{
- 		get
+@@ -10,9 +11,46 @@ internal class RootStepCodeGenerator : BindPathStepCodeGenerator<RootStep>
  		{
--			if (base.Instance.IsElementRoot)
-+			if (Instance.IsElementRoot)
+ 			if (Instance.IsElementRoot)
  			{
 -				return new LanguageSpecificString(() => "this", () => "", () => "this", () => "Me");
 +				return new LanguageSpecificString(

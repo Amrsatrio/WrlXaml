@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
-index 82d838c..b592cb8 100644
+index d72cbf7..5ea0a5c 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MapIndexStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -12,13 +12,13 @@ index 82d838c..b592cb8 100644
 @@ -10,16 +11,134 @@ internal class MapIndexStepCodeGenerator : BindPathStepCodeGenerator<MapIndexSte
  		get
  		{
- 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			return new LanguageSpecificString(() => $"safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, {base.Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->Lookup(\"{base.Instance.Key}\")", () => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, {0}>>().Lookup(\"{2}\")", base.Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), base.Instance.Key), () => $"{parentPathExpression.CSharpName()}[\"{base.Instance.Key}\"]", () => $"{parentPathExpression.VBName()}(\"{base.Instance.Key}\")");
+ 			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, {Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->Lookup(\"{Instance.Key}\")", () => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, {0}>>().Lookup(\"{2}\")", Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), Instance.Key), () => $"{parentPathExpression.CSharpName()}[\"{Instance.Key}\"]", () => $"{parentPathExpression.VBName()}(\"{Instance.Key}\")");
 +			return new LanguageSpecificString(
-+				() => $"safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, {base.Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->Lookup(\"{base.Instance.Key}\")",
-+				() => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, {0}>>().Lookup(\"{2}\")", base.Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), base.Instance.Key),
-+				() => $"{parentPathExpression.CSharpName()}[\"{base.Instance.Key}\"]",
-+				() => $"{parentPathExpression.VBName()}(\"{base.Instance.Key}\")",
++				() => $"safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, {Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->Lookup(\"{Instance.Key}\")",
++				() => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, {0}>>().Lookup(\"{2}\")", Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), Instance.Key),
++				() => $"{parentPathExpression.CSharpName()}[\"{Instance.Key}\"]",
++				() => $"{parentPathExpression.VBName()}(\"{Instance.Key}\")",
 +				wrl: () =>
 +				{
 +					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
@@ -56,16 +56,16 @@ index 82d838c..b592cb8 100644
  		}
  	}
  
--	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(obj)->Lookup(\"" + base.Instance.Key + "\")", () => "obj.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Lookup(L\"" + base.Instance.Key + "\")", () => string.Format("{0}[\"{1}\"]", "obj", base.Instance.Key), () => string.Format("{0}(\"{1}\")", "obj", base.Instance.Key));
+-	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + Instance.ValueType.CppCXName() + ">^>(obj)->Lookup(\"" + Instance.Key + "\")", () => "obj.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + Instance.ValueType.CppWinRTName() + ">>().Lookup(L\"" + Instance.Key + "\")", () => string.Format("{0}[\"{1}\"]", "obj", Instance.Key), () => string.Format("{0}(\"{1}\")", "obj", Instance.Key));
 +	public override ICodeGenOutput UpdateCallParam
 +	{
 +		get
 +		{
 +			return new LanguageSpecificString(
-+				() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(obj)->Lookup(\"" + base.Instance.Key + "\")",
-+				() => "obj.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Lookup(L\"" + base.Instance.Key + "\")",
-+				() => string.Format("{0}[\"{1}\"]", "obj", base.Instance.Key),
-+				() => string.Format("{0}(\"{1}\")", "obj", base.Instance.Key),
++				() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + Instance.ValueType.CppCXName() + ">^>(obj)->Lookup(\"" + Instance.Key + "\")",
++				() => "obj.as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + Instance.ValueType.CppWinRTName() + ">>().Lookup(L\"" + Instance.Key + "\")",
++				() => string.Format("{0}[\"{1}\"]", "obj", Instance.Key),
++				() => string.Format("{0}(\"{1}\")", "obj", Instance.Key),
 +				wrl: () =>
 +				{
 +					string n_temp = WRL_InternalGetTempVarName(nameof(PathExpression), "Temp"); // return value smart ptr
@@ -101,12 +101,12 @@ index 82d838c..b592cb8 100644
  
  	public override ICodeGenOutput PathSetExpression(ICodeGenOutput value)
  	{
- 		ICodeGenOutput pathExpression = base.Instance.CodeGen().PathExpression;
- 		ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--		return new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(" + parentPathExpression.CppCXName() + ")->Insert(\"" + base.Instance.Key + "\", " + value.CppCXName() + ")", () => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Insert(L\"" + base.Instance.Key + "\", " + value.CppWinRTName() + ")", () => pathExpression.CSharpName() + " = " + value.CSharpName(), () => pathExpression.VBName() + " = " + value.VBName());
+ 		ICodeGenOutput pathExpression = Instance.CodeGen().PathExpression;
+ 		ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-		return new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + Instance.ValueType.CppCXName() + ">^>(" + parentPathExpression.CppCXName() + ")->Insert(\"" + Instance.Key + "\", " + value.CppCXName() + ")", () => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + Instance.ValueType.CppWinRTName() + ">>().Insert(L\"" + Instance.Key + "\", " + value.CppWinRTName() + ")", () => pathExpression.CSharpName() + " = " + value.CSharpName(), () => pathExpression.VBName() + " = " + value.VBName());
 +		return new LanguageSpecificString(
-+			() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + base.Instance.ValueType.CppCXName() + ">^>(" + parentPathExpression.CppCXName() + ")->Insert(\"" + base.Instance.Key + "\", " + value.CppCXName() + ")",
-+			() => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + base.Instance.ValueType.CppWinRTName() + ">>().Insert(L\"" + base.Instance.Key + "\", " + value.CppWinRTName() + ")",
++			() => "safe_cast<::Windows::Foundation::Collections::IMap<::Platform::String^, " + Instance.ValueType.CppCXName() + ">^>(" + parentPathExpression.CppCXName() + ")->Insert(\"" + Instance.Key + "\", " + value.CppCXName() + ")",
++			() => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections::IMap<::winrt::hstring, " + Instance.ValueType.CppWinRTName() + ">>().Insert(L\"" + Instance.Key + "\", " + value.CppWinRTName() + ")",
 +			() => pathExpression.CSharpName() + " = " + value.CSharpName(),
 +			() => pathExpression.VBName() + " = " + value.VBName(),
 +			wrl: () =>

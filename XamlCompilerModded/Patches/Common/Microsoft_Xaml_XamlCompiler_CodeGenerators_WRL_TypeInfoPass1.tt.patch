@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1.tt
 new file mode 100644
-index 0000000..02e7eeb
+index 0000000..8d4618e
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1.tt
 @@ -0,0 +1,235 @@

@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
-index de6daa1..e7bf5cf 100644
+index 4e01432..1191389 100644
 --- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
 +++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/LanguageSpecificString.cs
 @@ -14,12 +14,18 @@ public class LanguageSpecificString : ICodeGenOutput

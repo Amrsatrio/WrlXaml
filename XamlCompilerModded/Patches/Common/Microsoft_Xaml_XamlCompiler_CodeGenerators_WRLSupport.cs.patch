@@ -1,9 +1,9 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
 new file mode 100644
-index 0000000..d46872e
+index 0000000..8b8c291
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRLSupport.cs
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,155 @@
 +using System;
 +using System.Collections.Generic;
 +using System.IO;
@@ -158,5 +158,4 @@ index 0000000..d46872e
 +
 +        return sb.ToString();
 +    }
-+
 +}

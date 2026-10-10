@@ -1,20 +1,21 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
-index f8367ba..562e613 100644
+index 16308ae..f9505f8 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/AttachedPropertyStepCodeGenerator.cs
-@@ -1,5 +1,7 @@
-+using System.Reflection;
+@@ -1,5 +1,6 @@
  using Microsoft.Windows.UI.Xaml.Build.Tasks.Utilities;
  using Microsoft.Xaml.XamlCompiler;
 +using Microsoft.Xaml.XamlCompiler.CodeGenerators;
  
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
-@@ -10,15 +12,139 @@ internal class AttachedPropertyStepCodeGenerator : DependencyPropertyStepCodeGen
+@@ -9,16 +10,140 @@ internal class AttachedPropertyStepCodeGenerator : DependencyPropertyStepCodeGen
+ 	{
  		get
  		{
- 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			return new LanguageSpecificString(() => $"{base.Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false)}::Get{base.Instance.PropertyName}({parentPathExpression.CppCXName()})", () => base.Instance.OwnerType.CppWinRTName() + "::Get" + base.Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ")", () => $"{base.Instance.OwnerType.CSharpName()}.Get{base.Instance.PropertyName}({parentPathExpression.CSharpName()})", () => $"{base.Instance.OwnerType.VBName()}.Get{base.Instance.PropertyName}({parentPathExpression.VBName()})");
+-			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"{Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false)}::Get{Instance.PropertyName}({parentPathExpression.CppCXName()})", () => Instance.OwnerType.CppWinRTName() + "::Get" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ")", () => $"{Instance.OwnerType.CSharpName()}.Get{Instance.PropertyName}({parentPathExpression.CSharpName()})", () => $"{Instance.OwnerType.VBName()}.Get{Instance.PropertyName}({parentPathExpression.VBName()})");
++			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
 +			return new LanguageSpecificString(
 +				() => $"{Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false)}::Get{Instance.PropertyName}({parentPathExpression.CppCXName()})",
 +				() => Instance.OwnerType.CppWinRTName() + "::Get" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ")",
@@ -57,7 +58,7 @@ index f8367ba..562e613 100644
  		}
  	}
  
--	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => string.Format("{0}::Get{1}({2})", base.Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false), base.Instance.PropertyName, "obj"), () => base.Instance.OwnerType.CppWinRTName() + "::Get" + base.Instance.PropertyName + "(obj)", () => string.Format("{0}.Get{1}({2})", base.Instance.OwnerType.CSharpName(), base.Instance.PropertyName, "obj"), () => string.Format("{0}.Get{1}({2})", base.Instance.OwnerType.VBName(), base.Instance.PropertyName, "obj"));
+-	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => string.Format("{0}::Get{1}({2})", Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false), Instance.PropertyName, "obj"), () => Instance.OwnerType.CppWinRTName() + "::Get" + Instance.PropertyName + "(obj)", () => string.Format("{0}.Get{1}({2})", Instance.OwnerType.CSharpName(), Instance.PropertyName, "obj"), () => string.Format("{0}.Get{1}({2})", Instance.OwnerType.VBName(), Instance.PropertyName, "obj"));
 +	public override ICodeGenOutput UpdateCallParam
 +	{
 +		get
@@ -102,8 +103,9 @@ index f8367ba..562e613 100644
  
  	public override ICodeGenOutput PathSetExpression(ICodeGenOutput value)
  	{
- 		ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--		return new LanguageSpecificString(() => base.Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false) + "::Set" + base.Instance.PropertyName + "(" + parentPathExpression.CppCXName() + ", " + value.CppCXName() + ")", () => base.Instance.OwnerType.CppWinRTName() + "::Set" + base.Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ", " + value.CppWinRTName() + ")", () => base.Instance.OwnerType.CSharpName() + ".Set" + base.Instance.PropertyName + "(" + parentPathExpression.CSharpName() + ", " + value.CSharpName() + ")", () => base.Instance.OwnerType.VBName() + ".Set" + base.Instance.PropertyName + "(" + parentPathExpression.VBName() + ", " + value.VBName() + ")");
+-		ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-		return new LanguageSpecificString(() => Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false) + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppCXName() + ", " + value.CppCXName() + ")", () => Instance.OwnerType.CppWinRTName() + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ", " + value.CppWinRTName() + ")", () => Instance.OwnerType.CSharpName() + ".Set" + Instance.PropertyName + "(" + parentPathExpression.CSharpName() + ", " + value.CSharpName() + ")", () => Instance.OwnerType.VBName() + ".Set" + Instance.PropertyName + "(" + parentPathExpression.VBName() + ", " + value.VBName() + ")");
++		ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
 +		return new LanguageSpecificString(
 +			() => Instance.OwnerType.CppCXName(IncludeHatIfApplicable: false) + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppCXName() + ", " + value.CppCXName() + ")",
 +			() => Instance.OwnerType.CppWinRTName() + "::Set" + Instance.PropertyName + "(" + parentPathExpression.CppWinRTName() + ", " + value.CppWinRTName() + ")",
@@ -148,8 +150,8 @@ index f8367ba..562e613 100644
 +	private string WRL_GetFirstArgTypeName(bool forSetter)
 +	{
 +		string methodName = forSetter ? "Set" + Instance.PropertyName : "Get" + Instance.PropertyName;
-+		MethodInfo method = Instance.OwnerType.UnderlyingType.GetMethod(methodName);
-+		ParameterInfo[] parameters = method?.GetParameters() ?? throw new System.InvalidOperationException("Could not find method " + methodName + " on type " + Instance.OwnerType.UnderlyingType.FullName);
++		var method = Instance.OwnerType.UnderlyingType.GetMethod(methodName);
++		var parameters = method?.GetParameters() ?? throw new System.InvalidOperationException("Could not find method " + methodName + " on type " + Instance.OwnerType.UnderlyingType.FullName);
 +		return Instance.OwnerType.SchemaContext.GetXamlType(parameters[0].ParameterType).WRLNameInterface();
  	}
  }

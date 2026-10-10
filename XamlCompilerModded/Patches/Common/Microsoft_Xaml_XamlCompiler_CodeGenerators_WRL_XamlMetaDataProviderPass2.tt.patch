@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass2.tt
 new file mode 100644
-index 0000000..82031cf
+index 0000000..006561a
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass2.tt
 @@ -0,0 +1,17 @@

@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
-index f17c72c..272f013 100644
+index c416611..2b91301 100644
 --- a/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
 +++ b/Microsoft/Xaml/XamlCompiler/TypeForCodeGenExtensionMethods.cs
 @@ -5,6 +5,7 @@ using System.Reflection;
@@ -270,15 +270,12 @@ index f17c72c..272f013 100644
  	public static string VBName(this XamlType type)
  	{
  		return type.GetTypeForCodeGen().FullName.VBName();
-@@ -93,9 +347,10 @@ public static class TypeForCodeGenExtensionMethods
- 	public static LanguageSpecificString Declaration(this IEnumerable<Parameter> parameters)
- 	{
- 		IEnumerable<string> cppDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "CppWinRT", globalized: true) + " const& " + p.Name);
-+		IEnumerable<string> wrlDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType.GetDefaultInterfaceType(), ProgrammingLanguage.WRL, globalized: true) + "* " + p.Name);
+@@ -96,6 +350,7 @@ public static class TypeForCodeGenExtensionMethods
  		IEnumerable<string> csDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "C#", globalized: true) + " " + p.Name);
  		IEnumerable<string> vbDeclarations = parameters.Select((Parameter p) => p.Name + " As " + XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "VB", globalized: true));
  		IEnumerable<string> cxDeclarations = parameters.Select((Parameter p) => string.Format("{0}{1} {2}", XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType, "C++", globalized: true), p.ParameterType.IsValueType ? "" : " ^ ", p.Name));
 -		return new LanguageSpecificString(() => cxDeclarations.ToCommaSeparatedValues(), () => cppDeclarations.ToCommaSeparatedValues(), () => csDeclarations.ToCommaSeparatedValues(), () => vbDeclarations.ToCommaSeparatedValues());
++		IEnumerable<string> wrlDeclarations = parameters.Select((Parameter p) => XamlSchemaCodeInfo.GetFullGenericNestedName(p.ParameterType.GetDefaultInterfaceType(), ProgrammingLanguage.WRL, globalized: true) + "* " + p.Name);
 +		return new LanguageSpecificString(() => cxDeclarations.ToCommaSeparatedValues(), () => cppDeclarations.ToCommaSeparatedValues(), () => csDeclarations.ToCommaSeparatedValues(), () => vbDeclarations.ToCommaSeparatedValues(), () => wrlDeclarations.ToCommaSeparatedValues());
  	}
  }

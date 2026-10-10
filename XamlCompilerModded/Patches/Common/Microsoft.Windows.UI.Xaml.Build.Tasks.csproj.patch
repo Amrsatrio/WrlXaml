@@ -1,5 +1,5 @@
 diff --git a/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj b/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
-index 572f39c..b24b64c 100644
+index 330653a..3962b36 100644
 --- a/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
 +++ b/Microsoft.Windows.UI.Xaml.Build.Tasks.csproj
 @@ -3,6 +3,8 @@
@@ -10,156 +10,143 @@ index 572f39c..b24b64c 100644
 +    <TransformOutOfDateOnly>false</TransformOutOfDateOnly>
    </PropertyGroup>
    <PropertyGroup>
-     <LangVersion>12.0</LangVersion>
-@@ -12,6 +14,162 @@
+     <LangVersion>14.0</LangVersion>
+@@ -13,6 +15,149 @@
      <RootNamespace />
    </PropertyGroup>
    <ItemGroup />
 +  <ItemGroup>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass1.cs">
++    <Compile Remove="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_*.cs" />
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_CodeGenerator.cs" />
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass1.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_BindingInfoPass1.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass2.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass2.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_BindingInfoPass2.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBinding.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBinding.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_PageBinding.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBindingTracking.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBindingTracking.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_PageBindingTracking.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass1.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass1.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_PagePass1.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass2.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass2.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_PagePass2.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TemplatedMetadataDelegates.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TemplatedMetadataDelegates.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_TemplatedMetadataDelegates.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_TypeInfoPass1.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1Impl.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1Impl.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_TypeInfoPass1Impl.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass2.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass2.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_TypeInfoPass2.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass2.cs">
-+      <AutoGen>True</AutoGen>
-+      <DesignTime>True</DesignTime>
-+      <DependentUpon>WRL_TypeInfoPass2.tt</DependentUpon>
-+    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass1.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass1.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_XamlMetaDataProviderPass1.tt</DependentUpon>
 +    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass2.cs">
++    <Compile Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass2.cs">
 +      <AutoGen>True</AutoGen>
 +      <DesignTime>True</DesignTime>
 +      <DependentUpon>WRL_XamlMetaDataProviderPass2.tt</DependentUpon>
-+    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass2.cs">
-+      <AutoGen>True</AutoGen>
-+      <DesignTime>True</DesignTime>
-+      <DependentUpon>WRL_XamlMetaDataProviderPass2.tt</DependentUpon>
-+    </Compile>
-+    <Compile Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass1.cs">
-+      <AutoGen>True</AutoGen>
-+      <DesignTime>True</DesignTime>
-+      <DependentUpon>WRL_XamlMetaDataProviderPass1.tt</DependentUpon>
 +    </Compile>
 +  </ItemGroup>
 +  <ItemGroup>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass1.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass1.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_BindingInfoPass1.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass2.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_BindingInfoPass2.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_BindingInfoPass2.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBinding.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBinding.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_PageBinding.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBindingTracking.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PageBindingTracking.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_PageBindingTracking.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass1.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass1.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_PagePass1.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass2.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_PagePass2.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_PagePass2.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TemplatedMetadataDelegates.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TemplatedMetadataDelegates.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_TemplatedMetadataDelegates.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_TypeInfoPass1.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1Impl.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass1Impl.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_TypeInfoPass1Impl.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass2.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_TypeInfoPass2.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_TypeInfoPass2.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass1.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass1.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
 +      <LastGenOutput>WRL_XamlMetaDataProviderPass1.cs</LastGenOutput>
 +    </None>
-+    <None Include="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass2.tt">
++    <None Update="Microsoft\Xaml\XamlCompiler\CodeGenerators\WRL_XamlMetaDataProviderPass2.tt">
 +      <Generator>TextTemplatingFilePreprocessor</Generator>
 +      <ClassNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</ClassNamespace>
 +      <CustomToolNamespace>Microsoft.Xaml.XamlCompiler.CodeGenerators</CustomToolNamespace>
@@ -174,7 +161,7 @@ index 572f39c..b24b64c 100644
    <ItemGroup>
      <Reference Include="System.Xml" />
      <Reference Include="System.Core" />
-@@ -20,4 +178,11 @@
+@@ -21,4 +166,11 @@
      <Reference Include="Microsoft.Build.Framework" />
      <Reference Include="Microsoft.Build" />
    </ItemGroup>

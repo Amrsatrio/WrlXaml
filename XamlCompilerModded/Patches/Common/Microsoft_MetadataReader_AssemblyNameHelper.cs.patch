@@ -1,5 +1,5 @@
 diff --git a/Microsoft/MetadataReader/AssemblyNameHelper.cs b/Microsoft/MetadataReader/AssemblyNameHelper.cs
-index 473944d..c637bc5 100644
+index 214b3c6..289c2d2 100644
 --- a/Microsoft/MetadataReader/AssemblyNameHelper.cs
 +++ b/Microsoft/MetadataReader/AssemblyNameHelper.cs
 @@ -55,7 +55,7 @@ internal static class AssemblyNameHelper

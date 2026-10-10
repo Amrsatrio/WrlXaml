@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs b/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
-index c687e00..37cfe6a 100644
+index 45cbf2e..e6c9be9 100644
 --- a/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
 +++ b/Microsoft/Xaml/XamlCompiler/TypeGenInfo.cs
 @@ -186,6 +186,31 @@ internal class TypeGenInfo

@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs b/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
-index d57e9a6..076802e 100644
+index 58d2194..e985db6 100644
 --- a/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
 +++ b/Microsoft/Xaml/XamlCompiler/InternalTypeEntry.cs
 @@ -22,6 +22,10 @@ internal class InternalTypeEntry

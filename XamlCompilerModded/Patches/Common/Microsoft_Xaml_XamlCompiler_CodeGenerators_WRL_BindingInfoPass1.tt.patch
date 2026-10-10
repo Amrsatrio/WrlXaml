@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass1.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass1.tt
 new file mode 100644
-index 0000000..499d018
+index 0000000..c820565
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass1.tt
 @@ -0,0 +1,351 @@
@@ -16,7 +16,7 @@ index 0000000..499d018
 +//------------------------------------------------------------------------------
 +#pragma once
 +
-+#include "TroleBoxer.h"
++#include "SimpleBoxer.h"
 +
 +namespace <#=Colonize(ProjectInfo.RootNamespace)#>
 +{
@@ -268,7 +268,7 @@ index 0000000..499d018
 +            if (data)
 +            {
 +                ::Microsoft::WRL::ComPtr<T> spUnboxed;
-+                hr = TroleBoxer::UnboxValue<T>(data, &spUnboxed);
++                hr = SimpleBoxer::UnboxValue<T>(data, &spUnboxed);
 +                if (SUCCEEDED(hr))
 +                {
 +                    hr = ::Microsoft::WRL::AsWeak(spUnboxed.Get(), &_dataRoot);
@@ -328,7 +328,7 @@ index 0000000..499d018
 +
 +            if (data)
 +            {
-+                hr = TroleBoxer::UnboxValue<T>(data, &_dataRoot);
++                hr = SimpleBoxer::UnboxValue<T>(data, &_dataRoot);
 +                *pfSet = true;
 +            }
 +

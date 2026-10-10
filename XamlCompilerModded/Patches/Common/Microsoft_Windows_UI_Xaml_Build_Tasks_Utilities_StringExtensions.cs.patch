@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
-index ae16787..15c760d 100644
+index ab48296..ee1a5dc 100644
 --- a/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
 +++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/Utilities/StringExtensions.cs
 @@ -1,3 +1,4 @@

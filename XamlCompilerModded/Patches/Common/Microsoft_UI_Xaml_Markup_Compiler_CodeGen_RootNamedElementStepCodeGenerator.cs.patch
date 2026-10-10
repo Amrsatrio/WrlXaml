@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
-index 882e598..bae487f 100644
+index 1b1c831..c372023 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/RootNamedElementStepCodeGenerator.cs
 @@ -1,4 +1,6 @@
@@ -10,9 +10,9 @@ index 882e598..bae487f 100644
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
 @@ -11,7 +13,31 @@ internal class RootNamedElementStepCodeGenerator : BindPathStepCodeGenerator<Roo
- 			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
- 			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
- 			string fieldName = ((!string.IsNullOrEmpty(base.Instance.UpdateCallParamOverride)) ? base.Instance.UpdateCallParamOverride : base.Instance.FieldName);
+ 			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
+ 			string fieldName = ((!string.IsNullOrEmpty(Instance.UpdateCallParamOverride)) ? Instance.UpdateCallParamOverride : Instance.FieldName);
 -			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + fieldName, () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + fieldName + "()", () => parentPathExpression.CSharpName() + "." + fieldName, () => parentPathExpression.VBName() + "." + fieldName);
 +			return new LanguageSpecificString(
 +				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + fieldName,
@@ -44,14 +44,14 @@ index 882e598..bae487f 100644
  
 @@ -21,9 +47,41 @@ internal class RootNamedElementStepCodeGenerator : BindPathStepCodeGenerator<Roo
  		{
- 			if (!string.IsNullOrEmpty(base.Instance.UpdateCallParamOverride))
+ 			if (!string.IsNullOrEmpty(Instance.UpdateCallParamOverride))
  			{
--				return new LanguageSpecificString(() => base.Instance.UpdateCallParamOverride ?? "", () => base.Instance.UpdateCallParamOverride ?? "", () => "bindings." + base.Instance.UpdateCallParamOverride, () => "bindings." + base.Instance.UpdateCallParamOverride);
+-				return new LanguageSpecificString(() => Instance.UpdateCallParamOverride ?? "", () => Instance.UpdateCallParamOverride ?? "", () => "bindings." + Instance.UpdateCallParamOverride, () => "bindings." + Instance.UpdateCallParamOverride);
 +				return new LanguageSpecificString(
-+					() => base.Instance.UpdateCallParamOverride ?? "",
-+					() => base.Instance.UpdateCallParamOverride ?? "",
-+					() => "bindings." + base.Instance.UpdateCallParamOverride,
-+					() => "bindings." + base.Instance.UpdateCallParamOverride,
++					() => Instance.UpdateCallParamOverride ?? "",
++					() => Instance.UpdateCallParamOverride ?? "",
++					() => "bindings." + Instance.UpdateCallParamOverride,
++					() => "bindings." + Instance.UpdateCallParamOverride,
 +					wrl: () =>
 +					{
 +						throw new System.NotImplementedException("WRL UpdateCallParam not implemented for RootNamedElementStep with override.");
@@ -61,10 +61,10 @@ index 882e598..bae487f 100644
 +			else
 +			{
 +				return new LanguageSpecificString(
-+					() => "obj->" + base.Instance.FieldName,
-+					() => "obj." + base.Instance.FieldName + "()",
-+					() => "obj." + base.Instance.FieldName,
-+					() => "obj." + base.Instance.FieldName,
++					() => "obj->" + Instance.FieldName,
++					() => "obj." + Instance.FieldName + "()",
++					() => "obj." + Instance.FieldName,
++					() => "obj." + Instance.FieldName,
 +					wrl: () =>
 +					{
 +						string n_temp = WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Temp"); // return value smart ptr
@@ -82,7 +82,7 @@ index 882e598..bae487f 100644
 +					},
 +					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
  			}
--			return new LanguageSpecificString(() => "obj->" + base.Instance.FieldName, () => "obj." + base.Instance.FieldName + "()", () => "obj." + base.Instance.FieldName, () => "obj." + base.Instance.FieldName);
+-			return new LanguageSpecificString(() => "obj->" + Instance.FieldName, () => "obj." + Instance.FieldName + "()", () => "obj." + Instance.FieldName, () => "obj." + Instance.FieldName);
  		}
  	}
  }

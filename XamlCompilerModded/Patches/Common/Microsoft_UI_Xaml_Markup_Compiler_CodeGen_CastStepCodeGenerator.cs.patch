@@ -1,14 +1,12 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
-index 1f1f9c5..6605b8a 100644
+index 94e6c4d..2dd65d4 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/CastStepCodeGenerator.cs
-@@ -9,8 +9,14 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
- 	{
+@@ -10,7 +10,13 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
  		get
  		{
--			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			return new LanguageSpecificString(() => $"(safe_cast<{base.Instance.ValueType.CppCXName()}>({parentPathExpression.CppCXName()}))", () => base.Instance.Parent.ValueType.CppWinRTCast(base.Instance.ValueType, parentPathExpression.CppWinRTName()), () => $"(({base.Instance.ValueType.CSharpName()}){parentPathExpression.CSharpName()})", () => string.Format("{2}({1}, {0})", base.Instance.ValueType.VBName(), parentPathExpression.VBName(), base.Instance.Parent.ValueType.GetVBCastName(base.Instance.ValueType.UnderlyingType)));
-+			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"(safe_cast<{Instance.ValueType.CppCXName()}>({parentPathExpression.CppCXName()}))", () => Instance.Parent.ValueType.CppWinRTCast(Instance.ValueType, parentPathExpression.CppWinRTName()), () => $"(({Instance.ValueType.CSharpName()}){parentPathExpression.CSharpName()})", () => string.Format("{2}({1}, {0})", Instance.ValueType.VBName(), parentPathExpression.VBName(), Instance.Parent.ValueType.GetVBCastName(Instance.ValueType.UnderlyingType)));
 +			return new LanguageSpecificString(
 +				() => $"(safe_cast<{Instance.ValueType.CppCXName()}>({parentPathExpression.CppCXName()}))",
 +				() => Instance.Parent.ValueType.CppWinRTCast(Instance.ValueType, parentPathExpression.CppWinRTName()),
@@ -19,12 +17,9 @@ index 1f1f9c5..6605b8a 100644
  		}
  	}
  
-@@ -18,11 +24,38 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
- 	{
- 		get
+@@ -20,7 +26,34 @@ internal class CastStepCodeGenerator : BindPathStepCodeGenerator<CastStep>
  		{
--			if (base.Instance.ValueType.IsString())
-+			if (Instance.ValueType.IsString())
+ 			if (Instance.ValueType.IsString())
  			{
 -				return new LanguageSpecificString(() => string.Format("{0}->ToString()", "obj"), () => string.Format("::winrt::to_hstring({0})", "obj"), () => string.Format("{0}.ToString()", "obj"), () => string.Format("{0}.ToString()", "obj"));
 +				return new LanguageSpecificString(
@@ -45,7 +40,7 @@ index 1f1f9c5..6605b8a 100644
 +HSTRING {{UpdateCallParam.WRLOutVarName()}} = nullptr;
 +if (SUCCEEDED(hrT))
 +{
-+    hrT = TroleStringer::GenericToString(obj, &{{n_tempBSTR}});
++    hrT = SimpleStringer::GenericToString(obj, &{{n_tempBSTR}});
 +}
 +if (SUCCEEDED(hrT))
 +{
@@ -56,8 +51,5 @@ index 1f1f9c5..6605b8a 100644
 +					},
 +					wrlOutVar: () => WRL_InternalGetTempVarName(nameof(UpdateCallParam), "Out"));
  			}
--			return base.Instance.Parent.ValueType.GetInlineConversionExpression(base.Instance.ValueType, new LanguageSpecificString(() => "obj"));
-+			return Instance.Parent.ValueType.GetInlineConversionExpression(Instance.ValueType, new LanguageSpecificString(() => "obj"));
+ 			return Instance.Parent.ValueType.GetInlineConversionExpression(Instance.ValueType, new LanguageSpecificString(() => "obj"));
  		}
- 	}
- }

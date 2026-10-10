@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
 new file mode 100644
-index 0000000..147bf14
+index 0000000..7f49b31
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_PagePass2.tt
 @@ -0,0 +1,611 @@

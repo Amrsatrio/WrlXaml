@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
-index f44b4da..13b49bd 100644
+index 621b192..244a7b7 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/ArrayIndexStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -9,13 +9,11 @@ index f44b4da..13b49bd 100644
  
  namespace Microsoft.UI.Xaml.Markup.Compiler.CodeGen;
  
-@@ -9,16 +10,108 @@ internal class ArrayIndexStepCodeGenerator : BindPathStepCodeGenerator<ArrayInde
- 	{
+@@ -10,15 +11,107 @@ internal class ArrayIndexStepCodeGenerator : BindPathStepCodeGenerator<ArrayInde
  		get
  		{
--			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			return new LanguageSpecificString(() => $"safe_cast<::Windows::Foundation::Collections::IVector<{base.Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->GetAt({base.Instance.Index})", () => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IVector<{0}>>().GetAt({2})", base.Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), base.Instance.Index), () => $"{parentPathExpression.CSharpName()}[{base.Instance.Index}]", () => $"{parentPathExpression.VBName()}({base.Instance.Index})");
-+			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+ 			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-			return new LanguageSpecificString(() => $"safe_cast<::Windows::Foundation::Collections::IVector<{Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->GetAt({Instance.Index})", () => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IVector<{0}>>().GetAt({2})", Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), Instance.Index), () => $"{parentPathExpression.CSharpName()}[{Instance.Index}]", () => $"{parentPathExpression.VBName()}({Instance.Index})");
 +			return new LanguageSpecificString(
 +				() => $"safe_cast<::Windows::Foundation::Collections::IVector<{Instance.ValueType.CppCXName()}>^>({parentPathExpression.CppCXName()})->GetAt({Instance.Index})",
 +				() => string.Format("{1}.as<::winrt::Windows::Foundation::Collections::IVector<{0}>>().GetAt({2})", Instance.ValueType.CppWinRTName(), parentPathExpression.CppWinRTName(), Instance.Index),
@@ -50,7 +48,7 @@ index f44b4da..13b49bd 100644
  		}
  	}
  
--	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => string.Format("safe_cast<::Windows::Foundation::Collections::IVector<{0}>^>({1})->GetAt({2})", base.Instance.ValueType.CppCXName(), "obj", base.Instance.Index), () => string.Format("{0}.as <::winrt::Windows::Foundation::Collections::IVector<{1}>>().GetAt({2})", "obj", base.Instance.ValueType.CppWinRTName(), base.Instance.Index), () => string.Format("{0}[{1}]", "obj", base.Instance.Index), () => string.Format("{0}({1})", "obj", base.Instance.Index));
+-	public override ICodeGenOutput UpdateCallParam => new LanguageSpecificString(() => string.Format("safe_cast<::Windows::Foundation::Collections::IVector<{0}>^>({1})->GetAt({2})", Instance.ValueType.CppCXName(), "obj", Instance.Index), () => string.Format("{0}.as <::winrt::Windows::Foundation::Collections::IVector<{1}>>().GetAt({2})", "obj", Instance.ValueType.CppWinRTName(), Instance.Index), () => string.Format("{0}[{1}]", "obj", Instance.Index), () => string.Format("{0}({1})", "obj", Instance.Index));
 +	public override ICodeGenOutput UpdateCallParam
 +	{
 +		get
@@ -87,9 +85,8 @@ index f44b4da..13b49bd 100644
  
  	public override ICodeGenOutput PathSetExpression(ICodeGenOutput value)
  	{
--		ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--		return new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IVector<" + base.Instance.ValueType.CppCXName() + ">^>" + $"({parentPathExpression.CppCXName()})->SetAt({base.Instance.Index}, {value.CppCXName()})", () => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections" + $"::IVector<{base.Instance.ValueType.CppWinRTName()}>>().SetAt({base.Instance.Index}, {value.CppWinRTName()})", () => PathExpression.CSharpName() + " = " + value.CSharpName(), () => PathExpression.VBName() + " = " + value.VBName());
-+		ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+ 		ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-		return new LanguageSpecificString(() => "safe_cast<::Windows::Foundation::Collections::IVector<" + Instance.ValueType.CppCXName() + ">^>" + $"({parentPathExpression.CppCXName()})->SetAt({Instance.Index}, {value.CppCXName()})", () => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections" + $"::IVector<{Instance.ValueType.CppWinRTName()}>>().SetAt({Instance.Index}, {value.CppWinRTName()})", () => PathExpression.CSharpName() + " = " + value.CSharpName(), () => PathExpression.VBName() + " = " + value.VBName());
 +		return new LanguageSpecificString(
 +			() => "safe_cast<::Windows::Foundation::Collections::IVector<" + Instance.ValueType.CppCXName() + ">^>" + $"({parentPathExpression.CppCXName()})->SetAt({Instance.Index}, {value.CppCXName()})",
 +			() => parentPathExpression.CppWinRTName() + ".as<::winrt::Windows::Foundation::Collections" + $"::IVector<{Instance.ValueType.CppWinRTName()}>>().SetAt({Instance.Index}, {value.CppWinRTName()})",

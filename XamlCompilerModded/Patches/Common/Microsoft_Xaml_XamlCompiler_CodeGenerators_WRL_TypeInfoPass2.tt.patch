@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass2.tt
 new file mode 100644
-index 0000000..39bf23b
+index 0000000..bafda57
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass2.tt
 @@ -0,0 +1,488 @@
@@ -17,7 +17,7 @@ index 0000000..39bf23b
 +//------------------------------------------------------------------------------
 +#include "pch.h"
 +
-+#include "inc/TroleBoxer.h"
++#include "inc/SimpleBoxer.h"
 +
 +bool __XAML_IsSameObject(IUnknown* punk1, IUnknown* punk2)
 +{

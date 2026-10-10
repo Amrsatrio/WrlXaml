@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs b/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
-index 8c1c164..226e0ce 100644
+index 3f3a5a6..332489f 100644
 --- a/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
 +++ b/Microsoft/Xaml/XamlCompiler/MemberGenInfo.cs
 @@ -47,11 +47,14 @@ internal class MemberGenInfo

@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs b/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
-index 9b7f933..262a04b 100644
+index ba61c95..4002274 100644
 --- a/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
 +++ b/Microsoft/Windows/UI/Xaml/Build/Tasks/CompileXamlInternal.cs
 @@ -446,6 +446,11 @@ internal class CompileXamlInternal

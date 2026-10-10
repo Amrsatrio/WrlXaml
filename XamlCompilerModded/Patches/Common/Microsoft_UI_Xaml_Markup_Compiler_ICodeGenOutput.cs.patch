@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs b/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
-index fd19e40..c38288c 100644
+index ff934f6..11d24a9 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/ICodeGenOutput.cs
 @@ -9,4 +9,8 @@ public interface ICodeGenOutput

@@ -1,5 +1,8 @@
 param (
-    [string]$SdkVersion
+    [string]$SdkVersion,
+    [string]$WorkRoot,
+    [string]$WorkspaceKey,
+    [string]$ToolsDirectory
 )
 
 # Set-StrictMode -Version Latest
@@ -10,15 +13,27 @@ $ErrorActionPreference = 'Stop'
 # =========================================================
 
 $RepoRoot = Resolve-Path "$PSScriptRoot\.."
-$WorkRoot = Join-Path $RepoRoot 'Work'
+if (-not $WorkRoot) {
+    $WorkRoot = Join-Path $RepoRoot 'Work'
+}
+$WorkRoot = [System.IO.Path]::GetFullPath($WorkRoot)
+$TempRoot = Join-Path $WorkRoot 'temp'
+New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
+$env:TEMP = $TempRoot
+$env:TMP = $TempRoot
+
+function Assert-NativeExit {
+    param ([string]$Operation)
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Operation failed with exit code $LASTEXITCODE"
+    }
+}
 
 # =========================================================
 # Locate Windows SDK root
 # =========================================================
 
-$SdkRoot = (Get-ItemProperty `
-    'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots' `
-).KitsRoot10
+$SdkRoot = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots').KitsRoot10
 
 if (-not $SdkRoot) {
     throw "Windows SDK not found (KitsRoot10 missing)"
@@ -74,7 +89,13 @@ Write-Host "  $XamlDll"
 
 $Hash = (Get-FileHash $XamlDll -Algorithm SHA1).Hash.ToLowerInvariant()
 
-$WorkDir  = Join-Path $WorkRoot "$SdkVersion\$Hash"
+$WorkDir = Join-Path $WorkRoot "$SdkVersion\$($Hash.Substring(0, 16))"
+if ($WorkspaceKey) {
+    if ($WorkspaceKey -notmatch '^[a-zA-Z0-9_-]+$') {
+        throw 'WorkspaceKey must contain only letters, digits, underscores or hyphens.'
+    }
+    $WorkDir = Join-Path $WorkRoot $WorkspaceKey
+}
 $SourceDir = Join-Path $WorkDir 'Source'
 
 # =========================================================
@@ -89,15 +110,17 @@ if (Test-Path $SourceDir) {
 # Ensure ilspycmd
 # =========================================================
 
-$ToolsDir = Join-Path $RepoRoot 'Tools\ilspycmd'
+if (-not $ToolsDirectory) {
+    $ToolsDirectory = Join-Path $RepoRoot 'Tools\ilspycmd-11.1.0.9782'
+}
+$ToolsDir = [System.IO.Path]::GetFullPath($ToolsDirectory)
 $IlspyCmd = Join-Path $ToolsDir 'ilspycmd.exe'
 
 if (-not (Test-Path $IlspyCmd)) {
     New-Item -ItemType Directory -Force -Path $ToolsDir | Out-Null
 
-    & dotnet tool install ilspycmd `
-        --tool-path $ToolsDir `
-        | Out-Null
+    & dotnet tool install ilspycmd --version 11.1.0.9782 --tool-path $ToolsDir | Out-Null
+    Assert-NativeExit 'Installing ilspycmd'
 }
 
 # =========================================================
@@ -110,20 +133,14 @@ New-Item -ItemType Directory -Force -Path $SourceDir | Out-Null
 # Preserve original Microsoft-signed DLL
 # =========================================================
 
-Copy-Item `
-    -Path $XamlDll `
-    -Destination (Join-Path $WorkDir $XamlDllName) `
-    -Force
+Copy-Item -Path $XamlDll -Destination (Join-Path $WorkDir $XamlDllName) -Force
 
 # =========================================================
 # Decompile (Clean)
 # =========================================================
 
-& $IlspyCmd `
-    -p `
-    --nested-directories `
-    -o $SourceDir `
-    $XamlDll
+& $IlspyCmd -p --nested-directories -o $SourceDir $XamlDll
+Assert-NativeExit 'Decompiling SDK XAML compiler'
 
 # =========================================================
 # Generate solution
@@ -134,17 +151,27 @@ $SlnPath = Join-Path $SourceDir $SlnName
 $SlnBaseName = [System.IO.Path]::GetFileNameWithoutExtension($SlnName)
 
 dotnet new sln --format sln --name $SlnBaseName --output $SourceDir | Out-Null
+Assert-NativeExit 'Creating compiler solution'
 
 $CsprojPath = Join-Path $SourceDir ([System.IO.Path]::GetFileNameWithoutExtension($XamlDllName) + '.csproj')
 dotnet sln $SlnPath add $CsprojPath | Out-Null
+Assert-NativeExit 'Adding compiler project to solution'
 
 # =========================================================
 # Setup Git repository in Source
 # =========================================================
 
 Push-Location $SourceDir
+try {
 
 git init | Out-Null
+Assert-NativeExit 'Initializing clean baseline repository'
+git config core.longpaths true
+Assert-NativeExit 'Enabling long paths in baseline repository'
+git config core.autocrlf false
+Assert-NativeExit 'Disabling baseline newline conversion'
+git config core.safecrlf false
+Assert-NativeExit 'Disabling baseline newline checks'
 
 # Setup .gitignore
 @"
@@ -169,9 +196,11 @@ Thumbs.db
 Desktop.ini
 "@ | Set-Content -Encoding ASCII '.gitignore'
 
-# Make the ONLY commit of the repository
+# Record the clean decompile baseline
 git add .
-git commit -m "Clean decompile baseline" | Out-Null
+Assert-NativeExit 'Staging clean baseline'
+git -c user.name=PatchWorkspace -c user.email=patch-workspace@invalid -c commit.gpgsign=false commit --quiet --no-verify -m "Clean decompile baseline"
+Assert-NativeExit 'Committing clean baseline'
 
 # Apply patches (if present)
 function Apply-Patch {
@@ -244,6 +273,7 @@ $VersionPatchDirs |
 
 # Track new files from patches
 git add .
+Assert-NativeExit 'Staging maintained patches'
 
 # Prevent further commits from being made
 $HookDir = Join-Path $SourceDir '.git\hooks'
@@ -256,7 +286,10 @@ echo "This repository exists only for diff purposes."
 exit 1
 "@ | Set-Content -Encoding ASCII $Hook
 
-Pop-Location
+}
+finally {
+    Pop-Location
+}
 
 # =========================================================
 # Metadata + shortcut script
@@ -270,27 +303,22 @@ $Shortcut = Join-Path $WorkDir 'GeneratePatchesForThisDll.bat'
 @echo off
 setlocal
 
-REM =====================================================
-REM Fixed layout contract:
-REM   Work\<Ver>\<Hash>\GeneratePatchesForThisDll.bat
-REM   Scripts\GeneratePatches.ps1
-REM =====================================================
-
 set THIS_DIR=%~dp0
 set THIS_DIR=%THIS_DIR:~0,-1%
 
-set REPO_ROOT=%THIS_DIR%\..\..\..
-set SCRIPT=%REPO_ROOT%\Scripts\GeneratePatches.ps1
+set SCRIPT=$PSScriptRoot\GeneratePatches.ps1
 
-powershell ^
-  -NoProfile ^
-  -ExecutionPolicy Bypass ^
-  -File "%SCRIPT%" ^
-  -WorkDir "%THIS_DIR%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT%" -WorkDir "%THIS_DIR%"
 
 pause
 "@ | Set-Content -Encoding ASCII $Shortcut
 
+# Written last: callers must not reuse an interrupted preparation as valid source.
+@{
+    SdkVersion = $SdkVersion
+    OriginalHash = $Hash
+    WorkspaceKey = $WorkspaceKey
+} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $WorkDir 'Prepared.json')
 
 Write-Host ""
 Write-Host "SUCCESS"

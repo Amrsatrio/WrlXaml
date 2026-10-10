@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1Impl.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1Impl.tt
 new file mode 100644
-index 0000000..368c6a1
+index 0000000..2f5abe9
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_TypeInfoPass1Impl.tt
 @@ -0,0 +1,903 @@
@@ -21,7 +21,7 @@ index 0000000..368c6a1
 +
 +#include "XamlTypeInfo.xaml.g.h"
 +#include "XamlMetaDataProvider.h"
-+#include "inc/TroleBoxer.h"
++#include "inc/SimpleBoxer.h"
 +
 +using namespace Microsoft::WRL;
 +
@@ -782,7 +782,7 @@ index 0000000..368c6a1
 +                if (SUCCEEDED(hr))
 +                {
 +                    int value = 0;
-+                    hr = TroleBoxer::UnboxValue<int>(spValueBoxed.Get(), &value);
++                    hr = SimpleBoxer::UnboxValue<int>(spValueBoxed.Get(), &value);
 +                    if (FAILED(hr))
 +                    {
 +                        return hr;

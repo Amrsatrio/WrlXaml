@@ -1,5 +1,5 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs b/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
-index ee2819a..3881583 100644
+index 7538da1..65259ca 100644
 --- a/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
 +++ b/Microsoft/Xaml/XamlCompiler/XamlSchemaCodeInfo.cs
 @@ -16,18 +16,20 @@ internal class XamlSchemaCodeInfo
@@ -94,7 +94,7 @@ index ee2819a..3881583 100644
  			}
  			return _winRtPrimitiveTypeList;
  		}
-@@ -363,101 +365,160 @@ internal class XamlSchemaCodeInfo
+@@ -363,100 +365,160 @@ internal class XamlSchemaCodeInfo
  		return true;
  	}
  
@@ -263,10 +263,10 @@ index ee2819a..3881583 100644
 +		for (int iParts = 1; iParts < nestedGenericParts.Length; iParts++)
  		{
 -			string namePart = array[i];
-+			string part = nestedGenericParts[iParts];
- 			string remainder;
--			int num2 = CountTypeArgs(namePart, out remainder);
+-			int num2 = CountTypeArgs(namePart, out var remainder);
 -			if (!string.IsNullOrEmpty(text6))
++			string part = nestedGenericParts[iParts];
++			string remainder;
 +			int argCount = CountTypeArgs(part, out remainder);
 +
 +			if (!String.IsNullOrEmpty(AiritySpecifier))
@@ -324,7 +324,7 @@ index ee2819a..3881583 100644
  	}
  
  	internal static string FixNestedTypeName(Type type)
-@@ -543,6 +604,12 @@ internal class XamlSchemaCodeInfo
+@@ -541,6 +603,12 @@ internal class XamlSchemaCodeInfo
  				return simpleTypeName.Replace(".", "::");
  			}
  			return value.CppWinRTName;

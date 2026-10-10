@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass1.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass1.tt
 new file mode 100644
-index 0000000..972d9c8
+index 0000000..475f989
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_XamlMetaDataProviderPass1.tt
 @@ -0,0 +1,43 @@
@@ -18,7 +18,7 @@ index 0000000..972d9c8
 +
 +#include "XamlTypeInfo.xaml.g.h"
 +
-+namespace ClassLibrary
++namespace <#=ProjectInfo.RootNamespace#>
 +{
 +    using IXamlMember = <#=Projection(DUI.NamespaceWindowsUIXamlMarkup)#>::IXamlMember;
 +    using IXamlType = <#=Projection(DUI.NamespaceWindowsUIXamlMarkup)#>::IXamlType;
@@ -28,7 +28,7 @@ index 0000000..972d9c8
 +            , <#=Projection(DUI.NamespaceWindowsUIXamlMarkup)#>::IXamlMetadataProvider
 +        >
 +    {
-+        InspectableClass(L"ClassLibrary.XamlMetaDataProvider", BaseTrust);
++        InspectableClass(L"<#=ProjectInfo.RootNamespace#>.XamlMetaDataProvider", BaseTrust);
 +
 +    public:
 +        //~ Begin IXamlMetadataProvider Interface

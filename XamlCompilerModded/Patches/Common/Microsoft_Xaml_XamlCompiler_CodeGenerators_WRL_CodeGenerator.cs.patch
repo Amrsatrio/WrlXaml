@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
 new file mode 100644
-index 0000000..f823e36
+index 0000000..73298b3
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_CodeGenerator.cs
 @@ -0,0 +1,130 @@

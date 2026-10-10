@@ -1,5 +1,5 @@
 diff --git a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
-index 36bb7a6..9acedd7 100644
+index 8a3f8ae..6175423 100644
 --- a/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
 +++ b/Microsoft/UI/Xaml/Markup/Compiler/CodeGen/MethodStepCodeGenerator.cs
 @@ -1,5 +1,6 @@
@@ -13,14 +13,13 @@ index 36bb7a6..9acedd7 100644
  	{
  		get
  		{
--			ICodeGenOutput parentPathExpression = base.Instance.Parent.CodeGen().PathExpression;
--			ICodeGenOutput parentMemberAccessOperator = base.Instance.Parent.CodeGen().MemberAccessOperator;
--			string paramList = base.Instance.Parameters.ForCall();
--			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CSharpName() + "." + base.Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.VBName() + "." + base.Instance.MethodName + "(" + paramList + ")");
+-			ICodeGenOutput parentPathExpression = Instance.Parent.CodeGen().PathExpression;
+-			ICodeGenOutput parentMemberAccessOperator = Instance.Parent.CodeGen().MemberAccessOperator;
 +			IBindPathStepCodeGen parentCodeGen = Instance.Parent.CodeGen();
 +			ICodeGenOutput parentPathExpression = parentCodeGen.PathExpression;
 +			ICodeGenOutput parentMemberAccessOperator = parentCodeGen.MemberAccessOperator;
-+			string paramList = Instance.Parameters.ForCall();
+ 			string paramList = Instance.Parameters.ForCall();
+-			return new LanguageSpecificString(() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.CSharpName() + "." + Instance.MethodName + "(" + paramList + ")", () => parentPathExpression.VBName() + "." + Instance.MethodName + "(" + paramList + ")");
 +			return new LanguageSpecificString(
 +				() => parentPathExpression.CppCXName() + parentMemberAccessOperator.CppCXName() + Instance.MethodName + "(" + paramList + ")",
 +				() => parentPathExpression.CppWinRTName() + parentMemberAccessOperator.CppWinRTName() + Instance.MethodName + "(" + paramList + ")",

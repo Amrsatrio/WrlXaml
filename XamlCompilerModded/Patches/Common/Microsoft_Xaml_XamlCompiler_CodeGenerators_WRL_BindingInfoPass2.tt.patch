@@ -1,6 +1,6 @@
 diff --git a/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass2.tt b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass2.tt
 new file mode 100644
-index 0000000..da71d6c
+index 0000000..e9438b4
 --- /dev/null
 +++ b/Microsoft/Xaml/XamlCompiler/CodeGenerators/WRL_BindingInfoPass2.tt
 @@ -0,0 +1,459 @@
